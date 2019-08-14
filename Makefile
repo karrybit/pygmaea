@@ -1,17 +1,17 @@
 fmt:
-	docker run --rm --privileged --security-opt="seccomp=unconfined" -it -w /mnt -v ${PWD}:/mnt monkey cargo fmt
+	docker run -t monkey cargo fmt
 
 check:
-	docker run --rm --privileged --security-opt="seccomp=unconfined" -it -w /mnt -v ${PWD}:/mnt monkey cargo check
+	docker run -t monkey cargo check
 
 build:
-	docker run --rm --privileged --security-opt="seccomp=unconfined" -it -w /mnt -v ${PWD}:/mnt monkey cargo build
+	docker run -t monkey cargo build
 
 run:
-	docker run --rm --privileged --security-opt="seccomp=unconfined" -it -w /mnt -v ${PWD}:/mnt monkey cargo run
+	docker run -t monkey cargo run
 
 test:
-	docker run --rm --privileged --security-opt="seccomp=unconfined" -it -w /mnt -v ${PWD}:/mnt monkey cargo test
+	docker run -t monkey cargo test
 
 shell:
-	docker run --rm --privileged --security-opt="seccomp=unconfined" -it -w /mnt -v ${PWD}:/mnt monkey bash
+	docker run -it -w /mnt -v ${PWD}:/mnt monkey bash

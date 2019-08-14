@@ -8,4 +8,9 @@ RUN \
     apt-get -y install \
     build-essential less gdb \
     && apt-get clean
+
+WORKDIR /work
+COPY . .
+
 RUN rustup component add rustfmt
+RUN cargo build
