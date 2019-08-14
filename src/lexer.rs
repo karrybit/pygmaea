@@ -26,7 +26,6 @@ impl Lexer {
     }
 
     fn next_token(&mut self) -> Token {
-        dbg!(&self.examining_char);
         let token = match self.examining_char {
             Some('=') => Token::new(
                 TokenType::Assign,
@@ -80,7 +79,6 @@ impl Lexer {
         };
 
         self.read_char();
-        dbg!(&token);
         token
     }
 }
