@@ -9,7 +9,7 @@ struct Lexer {
     examining_char: Option<char>,
 }
 
-impl<'a> Lexer {
+impl Lexer {
     fn new(input: String) -> Self {
         let mut lexer = Self {
             input: Rc::new(input.chars().collect()),
@@ -19,7 +19,7 @@ impl<'a> Lexer {
         lexer
     }
 
-    fn read_char(&'a mut self) {
+    fn read_char(&mut self) {
         if self.read_position >= self.input.len() {
             self.examining_char = None;
         } else {
@@ -29,7 +29,7 @@ impl<'a> Lexer {
         self.read_position += 1;
     }
 
-    fn next_token(&'a mut self) -> Token {
+    fn next_token(&mut self) -> Token {
         dbg!(&self.examining_char);
         let token = match self.examining_char {
             Some('=') => Token::new(
