@@ -53,49 +53,27 @@ impl Lexer {
 mod tests {
     use crate::token::*;
 
-    struct Expect {
-        token_type: TokenType,
-        literal: &'static str,
+    struct Expect(TokenType, &'static str);
+    impl Expect {
+        fn token_type(&self) -> &TokenType {
+            &self.0
+        }
+        fn literal(&self) -> &'static str {
+            self.1
+        }
     }
 
     fn setup_expects() -> Vec<Expect> {
         vec![
-            Expect {
-                token_type: TokenType::Assign,
-                literal: "=",
-            },
-            Expect {
-                token_type: TokenType::Plus,
-                literal: "+",
-            },
-            Expect {
-                token_type: TokenType::LParen,
-                literal: "(",
-            },
-            Expect {
-                token_type: TokenType::RParen,
-                literal: ")",
-            },
-            Expect {
-                token_type: TokenType::LBrace,
-                literal: "{",
-            },
-            Expect {
-                token_type: TokenType::RBrace,
-                literal: "}",
-            },
-            Expect {
-                token_type: TokenType::Comma,
-                literal: ",",
-            },
-            Expect {
-                token_type: TokenType::Semicolon,
-                literal: ";",
-            },
-            Expect {
-                token_type: TokenType::EOF,
-                literal: "",
-            },
+            Expect(TokenType::Assign, "="),
+            Expect(TokenType::Plus, "+"),
+            Expect(TokenType::LParen, "("),
+            Expect(TokenType::RParen, ")"),
+            Expect(TokenType::LBrace, "{"),
+            Expect(TokenType::RBrace, "}"),
+            Expect(TokenType::Comma, ","),
+            Expect(TokenType::Semicolon, ";"),
+            Expect(TokenType::EOF, ""),
         ]
     }
 
@@ -108,8 +86,8 @@ mod tests {
 
         for expect in expects.iter() {
             let token = lexer.next_token();
-            assert_eq!(expect.token_type, token.token_type);
-            assert_eq!(expect.literal, token.literal);
+            assert_eq!(expect.token_type(), &token.token_type);
+            assert_eq!(expect.literal(), token.literal);
         }
     }
 }
