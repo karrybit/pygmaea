@@ -32,3 +32,6 @@ jobs:
           paths:
             - "/usr/local/cargo/registry"
             - "target"
+      - run:
+          name: test
+          command: cargo test
