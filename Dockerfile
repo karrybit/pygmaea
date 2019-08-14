@@ -8,3 +8,4 @@ RUN \
     apt-get -y install \
     build-essential less gdb \
     && apt-get clean
+RUN rustup component add rustfmt
