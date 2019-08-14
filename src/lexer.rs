@@ -41,7 +41,8 @@ impl Lexer {
             Some('+') => Token::new(TokenType::Plus, extract_literal()),
             Some('{') => Token::new(TokenType::LBrace, extract_literal()),
             Some('}') => Token::new(TokenType::RBrace, extract_literal()),
-            _ => Token::new(TokenType::EOF, "".to_string()),
+            None => Token::new(TokenType::EOF, "".to_string()),
+            Some(c) => panic!("'{}' is invalid charactor", c),
         };
 
         self.read_char();
