@@ -2,12 +2,22 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 use TokenType::*;
 
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Token {
-    token_type: TokenType,
-    literal: String,
+    pub(crate) token_type: TokenType,
+    pub(crate) literal: String,
 }
 
-#[derive(Clone)]
+impl Token {
+    pub(crate) fn new(token_type: TokenType, literal: String) -> Self {
+        Self {
+            token_type,
+            literal,
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub(crate) enum TokenType {
     Illegal,
     EOF,
