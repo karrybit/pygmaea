@@ -20,11 +20,7 @@ impl Lexer {
     }
 
     fn read_char(&mut self) {
-        if self.read_position >= self.input.len() {
-            self.examining_char = None;
-        } else {
-            self.examining_char = self.input.get(self.read_position).cloned();
-        }
+        self.examining_char = self.input.get(self.read_position).cloned();
         self.position = self.read_position;
         self.read_position += 1;
     }
