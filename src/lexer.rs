@@ -26,55 +26,21 @@ impl Lexer {
     }
 
     fn next_token(&mut self) -> Token {
+        let extract_literal = || {
+            self.input[self.position..self.read_position]
+                .iter()
+                .collect::<String>()
+        };
+
         let token = match self.examining_char {
-            Some('=') => Token::new(
-                TokenType::Assign,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some(';') => Token::new(
-                TokenType::Semicolon,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some('(') => Token::new(
-                TokenType::LParen,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some(')') => Token::new(
-                TokenType::RParen,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some(',') => Token::new(
-                TokenType::Comma,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some('+') => Token::new(
-                TokenType::Plus,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some('{') => Token::new(
-                TokenType::LBrace,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
-            Some('}') => Token::new(
-                TokenType::RBrace,
-                self.input[self.position..self.read_position]
-                    .iter()
-                    .collect::<String>(),
-            ),
+            Some('=') => Token::new(TokenType::Assign, extract_literal()),
+            Some(';') => Token::new(TokenType::Semicolon, extract_literal()),
+            Some('(') => Token::new(TokenType::LParen, extract_literal()),
+            Some(')') => Token::new(TokenType::RParen, extract_literal()),
+            Some(',') => Token::new(TokenType::Comma, extract_literal()),
+            Some('+') => Token::new(TokenType::Plus, extract_literal()),
+            Some('{') => Token::new(TokenType::LBrace, extract_literal()),
+            Some('}') => Token::new(TokenType::RBrace, extract_literal()),
             _ => Token::new(TokenType::EOF, "".to_string()),
         };
 
