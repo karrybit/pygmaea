@@ -13,5 +13,3 @@ cargo +nightly test --verbose
 
 grcov ./target/debug/deps -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" -o lcov.info
 genhtml -o report/ --show-details --highlight --ignore-errors source --legend lcov.info
-
-# bash <(curl -s https://codecov.io/bash) -f lcov.info;

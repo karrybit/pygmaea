@@ -10,6 +10,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: apt-get
+          command: apt-get -y lcov ruby
+      - run:
           name: rustup version
           command: rustup --version
       - run:
@@ -24,9 +27,6 @@ jobs:
       - run:
           name: cargo install grcov
           command: |
-            git clone https://github.com/linux-test-project/lcov.git
-            sudo make -C lcov install
-            apt-get install -y ruby
             gem install coveralls-lcov
             cargo install grcov
       - restore_cache:
