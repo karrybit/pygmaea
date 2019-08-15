@@ -11,7 +11,7 @@ jobs:
       - checkout
       - run:
           name: apt-get
-          command: apt-get -y install lcov ruby
+          command: sudo apt-get update && sudo apt-get -y install lcov ruby
       - run:
           name: rustup version
           command: rustup --version
