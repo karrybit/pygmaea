@@ -1,17 +1,17 @@
 fmt:
-	docker run -t monkey cargo fmt
+	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo fmt
 
 check:
-	docker run -t monkey cargo check
+	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo check
 
 build:
-	docker run -t monkey cargo build
+	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo build
 
 run:
-	docker run -t monkey cargo run
+	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo run
 
 test:
-	docker run -t monkey cargo test
+	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo test
 
 shell:
 	docker run -it -w /mnt -v ${PWD}:/mnt monkey bash

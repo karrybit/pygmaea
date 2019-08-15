@@ -13,4 +13,5 @@ WORKDIR /work
 COPY . .
 
 RUN rustup component add rustfmt
+RUN cargo install grcov
 RUN cargo build
