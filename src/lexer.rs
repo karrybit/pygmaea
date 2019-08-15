@@ -1,9 +1,8 @@
 use crate::token::{Token, TokenType};
-use std::rc::Rc;
 
 #[derive(Default)]
 struct Lexer {
-    input: Rc<Vec<char>>,
+    input: Vec<char>,
     position: usize,
     read_position: usize,
     examining_char: Option<char>,
@@ -12,7 +11,7 @@ struct Lexer {
 impl Lexer {
     fn new(input: String) -> Self {
         let mut lexer = Self {
-            input: Rc::new(input.chars().collect()),
+            input: input.chars().collect(),
             ..Default::default()
         };
         lexer.read_char();
