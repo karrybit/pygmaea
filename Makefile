@@ -13,5 +13,8 @@ run:
 test:
 	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo test
 
+gen_cov:
+	docker run -t -w /mnt -v ${PWD}:/mnt monkey sh ./gen_cov.sh
+
 shell:
 	docker run -it -w /mnt -v ${PWD}:/mnt monkey bash

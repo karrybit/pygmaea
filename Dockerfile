@@ -12,6 +12,12 @@ RUN \
 WORKDIR /work
 COPY . .
 
+RUN git clone https://github.com/linux-test-project/lcov.git
+RUN make -C lcov install
+RUN apt-get install -y ruby
+RUN gem install coveralls-lcov
+
+RUN rustup install nightly
 RUN rustup component add rustfmt
 RUN cargo install grcov
 RUN cargo build
