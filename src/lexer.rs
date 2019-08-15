@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{Token, TokenType, KEYWORDS};
 
 #[derive(Default)]
 struct Lexer {
@@ -24,7 +24,34 @@ impl Lexer {
         self.read_position += 1;
     }
 
+    fn skip_whitespace(&mut self) {
+        while self
+            .examining_char
+            .map_or(false, |ch| ch.is_ascii_whitespace())
+        {
+            self.read_char();
+        }
+    }
+
+    fn read_identifier(&mut self) -> String {
+        let position = self.position;
+        while self.examining_char.map_or(false, |ref ch| is_letter(ch)) {
+            self.read_char();
+        }
+        self.input[position..self.position].iter().collect()
+    }
+
+    fn read_number(&mut self) -> String {
+        let position = self.position;
+        while self.examining_char.map_or(false, |ch| ch.is_ascii_digit()) {
+            self.read_char();
+        }
+        self.input[position..self.position].iter().collect()
+    }
+
     fn next_token(&mut self) -> Token {
+        self.skip_whitespace();
+
         let extract_literal = || {
             self.input[self.position..self.read_position]
                 .iter()
@@ -40,13 +67,29 @@ impl Lexer {
             Some('+') => Token::new(TokenType::Plus, extract_literal()),
             Some('{') => Token::new(TokenType::LBrace, extract_literal()),
             Some('}') => Token::new(TokenType::RBrace, extract_literal()),
+            Some(ref ch) if is_letter(ch) => {
+                let ident = self.read_identifier();
+                Token::new(look_up_ident(&ident), ident)
+            }
+            Some(ref ch) if ch.is_ascii_digit() => Token::new(TokenType::Int, self.read_number()),
+            Some(ch) => Token::new(TokenType::Illegal, ch.to_string()),
             None => Token::new(TokenType::EOF, "".to_string()),
-            Some(c) => panic!("'{}' is invalid charactor", c),
         };
 
-        self.read_char();
+        match token.token_type {
+            TokenType::Ident | TokenType::Function | TokenType::Int => {}
+            _ => self.read_char(),
+        }
         token
     }
+}
+
+fn is_letter(ch: &char) -> bool {
+    ch.is_ascii_alphabetic() || ch == &'_'
+}
+
+fn look_up_ident(ident: &str) -> TokenType {
+    KEYWORDS.get(ident).cloned().unwrap_or(TokenType::Ident)
 }
 
 #[cfg(test)]
@@ -66,67 +109,55 @@ mod tests {
         .to_string()
     }
 
-    struct Expect(TokenType, &'static str);
-    impl Expect {
-        fn token_type(&self) -> &TokenType {
-            &self.0
-        }
-        fn literal(&self) -> &'static str {
-            self.1
-        }
-    }
-
-    fn setup_expects() -> Vec<Expect> {
+    fn setup_expects() -> Vec<(TokenType, &'static str)> {
         vec![
-            Expect(TokenType::Let, "let"),
-            Expect(TokenType::Ident, "five"),
-            Expect(TokenType::Assign, "="),
-            Expect(TokenType::Int, "5"),
-            Expect(TokenType::Semicolon, ";"),
-            Expect(TokenType::Let, "let"),
-            Expect(TokenType::Ident, "ten"),
-            Expect(TokenType::Assign, "="),
-            Expect(TokenType::Int, "10"),
-            Expect(TokenType::Semicolon, ";"),
-            Expect(TokenType::Let, "let"),
-            Expect(TokenType::Ident, "add"),
-            Expect(TokenType::Assign, "="),
-            Expect(TokenType::Function, "fn"),
-            Expect(TokenType::LParen, "("),
-            Expect(TokenType::Ident, "x"),
-            Expect(TokenType::Comma, ","),
-            Expect(TokenType::Ident, "y"),
-            Expect(TokenType::RParen, ")"),
-            Expect(TokenType::LBrace, "{"),
-            Expect(TokenType::Ident, "x"),
-            Expect(TokenType::Plus, "+"),
-            Expect(TokenType::Ident, "y"),
-            Expect(TokenType::Semicolon, ";"),
-            Expect(TokenType::RBrace, "}"),
-            Expect(TokenType::Semicolon, ";"),
-            Expect(TokenType::Let, "let"),
-            Expect(TokenType::Ident, "result"),
-            Expect(TokenType::Assign, "="),
-            Expect(TokenType::Ident, "add"),
-            Expect(TokenType::LParen, "("),
-            Expect(TokenType::Ident, "five"),
-            Expect(TokenType::Comma, ","),
-            Expect(TokenType::Ident, "ten"),
-            Expect(TokenType::RParen, ")"),
-            Expect(TokenType::Semicolon, ";"),
-            Expect(TokenType::EOF, ""),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "five"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "5"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "ten"),
+            (TokenType::Assign, "="),
+            (TokenType::Int, "10"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "add"),
+            (TokenType::Assign, "="),
+            (TokenType::Function, "fn"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "x"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "y"),
+            (TokenType::RParen, ")"),
+            (TokenType::LBrace, "{"),
+            (TokenType::Ident, "x"),
+            (TokenType::Plus, "+"),
+            (TokenType::Ident, "y"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::RBrace, "}"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::Let, "let"),
+            (TokenType::Ident, "result"),
+            (TokenType::Assign, "="),
+            (TokenType::Ident, "add"),
+            (TokenType::LParen, "("),
+            (TokenType::Ident, "five"),
+            (TokenType::Comma, ","),
+            (TokenType::Ident, "ten"),
+            (TokenType::RParen, ")"),
+            (TokenType::Semicolon, ";"),
+            (TokenType::EOF, ""),
         ]
     }
 
-    fn exact_expect(input: &str, expects: &[Expect]) -> bool {
-        let mut expect = String::new();
-        expects.iter().for_each(|e| expect.push_str(e.literal()));
+    fn exact_expect(input: &str, expect: &[(TokenType, &'static str)]) -> bool {
         input
             .trim()
             .chars()
             .filter(|c| c != &' ' && c != &'\n')
             .collect::<String>()
-            == expect
+            == expect.iter().map(|expect| expect.1).collect::<String>()
     }
 
     #[test]
@@ -139,8 +170,8 @@ mod tests {
 
         for expect in expects.iter() {
             let token = lexer.next_token();
-            assert_eq!(expect.token_type(), &token.token_type);
-            assert_eq!(expect.literal(), token.literal);
+            assert_eq!(expect.0, token.token_type);
+            assert_eq!(expect.1, token.literal);
         }
     }
 }

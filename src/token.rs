@@ -17,7 +17,7 @@ impl Token {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub(crate) enum TokenType {
     Illegal,
     EOF,
@@ -55,4 +55,6 @@ lazy_static! {
     .iter()
     .cloned()
     .collect();
+    pub(crate) static ref KEYWORDS: HashMap<&'static str, TokenType> =
+        [("fn", Function), ("let", Let),].iter().cloned().collect();
 }
