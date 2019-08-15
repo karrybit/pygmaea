@@ -53,6 +53,19 @@ impl Lexer {
 mod tests {
     use crate::token::*;
 
+    fn setup_input() -> String {
+        "let five = 5;
+        let ten = 10;
+
+        let add = fn(x, y){
+            x + y;
+        };
+
+        let result = add(five, ten);
+        "
+        .to_string()
+    }
+
     struct Expect(TokenType, &'static str);
     impl Expect {
         fn token_type(&self) -> &TokenType {
@@ -65,22 +78,62 @@ mod tests {
 
     fn setup_expects() -> Vec<Expect> {
         vec![
+            Expect(TokenType::Let, "let"),
+            Expect(TokenType::Ident, "five"),
             Expect(TokenType::Assign, "="),
-            Expect(TokenType::Plus, "+"),
+            Expect(TokenType::Int, "5"),
+            Expect(TokenType::Semicolon, ";"),
+            Expect(TokenType::Let, "let"),
+            Expect(TokenType::Ident, "ten"),
+            Expect(TokenType::Assign, "="),
+            Expect(TokenType::Int, "10"),
+            Expect(TokenType::Semicolon, ";"),
+            Expect(TokenType::Let, "let"),
+            Expect(TokenType::Ident, "add"),
+            Expect(TokenType::Assign, "="),
+            Expect(TokenType::Function, "fn"),
             Expect(TokenType::LParen, "("),
+            Expect(TokenType::Ident, "x"),
+            Expect(TokenType::Comma, ","),
+            Expect(TokenType::Ident, "y"),
             Expect(TokenType::RParen, ")"),
             Expect(TokenType::LBrace, "{"),
+            Expect(TokenType::Ident, "x"),
+            Expect(TokenType::Plus, "+"),
+            Expect(TokenType::Ident, "y"),
+            Expect(TokenType::Semicolon, ";"),
             Expect(TokenType::RBrace, "}"),
+            Expect(TokenType::Semicolon, ";"),
+            Expect(TokenType::Let, "let"),
+            Expect(TokenType::Ident, "result"),
+            Expect(TokenType::Assign, "="),
+            Expect(TokenType::Ident, "add"),
+            Expect(TokenType::LParen, "("),
+            Expect(TokenType::Ident, "five"),
             Expect(TokenType::Comma, ","),
+            Expect(TokenType::Ident, "ten"),
+            Expect(TokenType::RParen, ")"),
             Expect(TokenType::Semicolon, ";"),
             Expect(TokenType::EOF, ""),
         ]
     }
 
+    fn exact_expect(input: &str, expects: &[Expect]) -> bool {
+        let mut expect = String::new();
+        expects.iter().for_each(|e| expect.push_str(e.literal()));
+        input
+            .trim()
+            .chars()
+            .filter(|c| c != &' ' && c != &'\n')
+            .collect::<String>()
+            == expect
+    }
+
     #[test]
     fn test_next_token() {
-        let input = "=+(){},;".to_string();
+        let input = setup_input();
         let expects = setup_expects();
+        assert!(exact_expect(&input, &expects));
 
         let mut lexer = super::Lexer::new(input);
 
