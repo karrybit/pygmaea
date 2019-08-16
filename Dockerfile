@@ -1,5 +1,5 @@
 FROM ubuntu
-FROM rust:1.36.0
+FROM rust:latest
 
 LABEL maintainer "Takumi Karibe <takumi.k.5610@gmail.com>"
 
