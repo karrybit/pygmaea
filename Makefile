@@ -1,20 +1,22 @@
+DOCKER = docker run -it -w /mnt -v ${PWD}:/mnt monkey
+
 fmt:
-	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo fmt
+	$(DOCKER) cargo $@
 
 check:
-	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo check
+	$(DOCKER) cargo $@
 
 build:
-	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo build
+	$(DOCKER) cargo $@
 
 run:
-	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo run
+	$(DOCKER) cargo $@
 
 test:
-	docker run -t -w /mnt -v ${PWD}:/mnt monkey cargo test
+	$(DOCKER) cargo $@
 
 coverage:
-	docker run -t -w /mnt -v ${PWD}:/mnt monkey sh coverage.sh
+	$(DOCKER) sh coverage.sh
 
-shell:
-	docker run -it -w /mnt -v ${PWD}:/mnt monkey bash
+bash:
+	$(DOCKER) $@
