@@ -27,7 +27,8 @@ impl Lexer {
     fn skip_whitespace(&mut self) {
         while self
             .examining_char
-            .map_or(false, |ch| ch.is_ascii_whitespace())
+            .as_ref()
+            .map_or(false, char::is_ascii_whitespace)
         {
             self.read_char();
         }
@@ -35,7 +36,7 @@ impl Lexer {
 
     fn read_identifier(&mut self) -> String {
         let position = self.position;
-        while self.examining_char.map_or(false, |ref ch| is_letter(ch)) {
+        while self.examining_char.as_ref().map_or(false, is_letter) {
             self.read_char();
         }
         self.input[position..self.position].iter().collect()
@@ -43,7 +44,11 @@ impl Lexer {
 
     fn read_number(&mut self) -> String {
         let position = self.position;
-        while self.examining_char.map_or(false, |ch| ch.is_ascii_digit()) {
+        while self
+            .examining_char
+            .as_ref()
+            .map_or(false, char::is_ascii_digit)
+        {
             self.read_char();
         }
         self.input[position..self.position].iter().collect()
@@ -151,20 +156,22 @@ mod tests {
         ]
     }
 
-    fn exact_expect(input: &str, expect: &[(TokenType, &'static str)]) -> bool {
-        input
-            .trim()
-            .chars()
-            .filter(|c| c != &' ' && c != &'\n')
-            .collect::<String>()
-            == expect.iter().map(|expect| expect.1).collect::<String>()
+    fn exact_expect(input: &str, expect: &[(TokenType, &'static str)]) -> (String, String) {
+        (
+            input
+                .chars()
+                .filter(|ch| !ch.is_ascii_whitespace())
+                .collect::<String>(),
+            expect.iter().map(|expect| expect.1).collect::<String>(),
+        )
     }
 
     #[test]
     fn test_next_token() {
         let input = setup_input();
         let expects = setup_expects();
-        assert!(exact_expect(&input, &expects));
+        let (exact_input, exact_expect) = exact_expect(&input, &expects);
+        assert_eq!(exact_input, exact_expect);
 
         let mut lexer = super::Lexer::new(input);
 
