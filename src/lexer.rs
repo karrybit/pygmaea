@@ -175,10 +175,18 @@ mod tests {
 
         let mut lexer = super::Lexer::new(input);
 
-        for expect in expects.iter() {
+        expects.iter().enumerate().for_each(|(i, expect)| {
             let token = lexer.next_token();
-            assert_eq!(expect.0, token.token_type);
-            assert_eq!(expect.1, token.literal);
-        }
+            assert_eq!(
+                expect.0, token.token_type,
+                "tests[{}] - tokentype wrong. expected={}, got={}",
+                i, expect.0, token.token_type
+            );
+            assert_eq!(
+                expect.1, token.literal,
+                "tests[{}] - literal wrong. expected={}, got={}",
+                i, expect.1, token.literal
+            );
+        });
     }
 }

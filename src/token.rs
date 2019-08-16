@@ -35,6 +35,31 @@ pub(crate) enum TokenType {
     Let,
 }
 
+impl std::fmt::Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Illegal => "Illegal",
+                EOF => "EOF",
+                Ident => "Ident",
+                Int => "Int",
+                Assign => "Assign",
+                Plus => "Plus",
+                Comma => "Comma",
+                Semicolon => "Semicolon",
+                LParen => "LParen",
+                RParen => "RParen",
+                LBrace => "LBrace",
+                RBrace => "RBrace",
+                Function => "Function",
+                Let => "Let",
+            }
+        )
+    }
+}
+
 lazy_static! {
     static ref TOKEN_TYPE_VALUE: HashMap<&'static str, TokenType> = [
         ("ILLEGAL", Illegal),
