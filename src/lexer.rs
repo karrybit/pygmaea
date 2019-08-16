@@ -161,8 +161,8 @@ mod tests {
             input
                 .chars()
                 .filter(|ch| !ch.is_ascii_whitespace())
-                .collect::<String>(),
-            expect.iter().map(|expect| expect.1).collect::<String>(),
+                .collect(),
+            expect.iter().map(|expect| expect.1).collect(),
         )
     }
 
