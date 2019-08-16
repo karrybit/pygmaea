@@ -160,8 +160,8 @@ mod tests {
         (
             input
                 .chars()
-                .filter(|ch| !ch.is_ascii_whitespace())
-                .collect(),
+                .partition::<String, _>(char::is_ascii_whitespace)
+                .1,
             expect.iter().map(|expect| expect.1).collect(),
         )
     }
