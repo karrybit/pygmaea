@@ -81,9 +81,8 @@ impl Lexer {
             None => Token::new(TokenType::EOF, "".to_string()),
         };
 
-        match token.token_type {
-            TokenType::Ident | TokenType::Function | TokenType::Int => {}
-            _ => self.read_char(),
+        if !(token.token_type.is_keyword() || token.token_type.is_int()) {
+            self.read_char();
         }
         token
     }
@@ -112,6 +111,12 @@ mod tests {
         let result = add(five, ten);
         !-/*5;
         5 < 10 > 5;
+
+        if (5 < 10) {
+            return true;
+        } else {
+            return false;
+        }
         "
         .to_string()
     }
@@ -167,6 +172,23 @@ mod tests {
             (GT, ">"),
             (Int, "5"),
             (Semicolon, ";"),
+            (If, "if"),
+            (LParen, "("),
+            (Int, "5"),
+            (LT, "<"),
+            (Int, "10"),
+            (RParen, ")"),
+            (LBrace, "{"),
+            (Return, "return"),
+            (True, "true"),
+            (Semicolon, ";"),
+            (RBrace, "}"),
+            (Else, "else"),
+            (LBrace, "{"),
+            (Return, "return"),
+            (False, "false"),
+            (Semicolon, ";"),
+            (RBrace, "}"),
             (EOF, ""),
         ]
     }

@@ -33,12 +33,33 @@ pub(crate) enum TokenType {
     RParen,
     LBrace,
     RBrace,
+    True,
+    False,
     Let,
     Function,
+    If,
+    Else,
+    Return,
     Int,
     Ident,
     EOF,
     Illegal,
+}
+
+impl TokenType {
+    pub(crate) fn is_keyword(&self) -> bool {
+        match self {
+            True | False | Let | Function | If | Else | Return | Ident => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_int(&self) -> bool {
+        match self {
+            Int => true,
+            _ => false,
+        }
+    }
 }
 
 impl std::fmt::Display for TokenType {
@@ -61,8 +82,13 @@ impl std::fmt::Display for TokenType {
                 RBrace => "RBrace",
                 Comma => "Comma",
                 Semicolon => "Semicolon",
+                True => "True",
+                False => "False",
                 Let => "Let",
                 Function => "Function",
+                If => "If",
+                Else => "Else",
+                Return => "Return",
                 Int => "Int",
                 Ident => "Ident",
                 EOF => "EOF",
@@ -73,31 +99,16 @@ impl std::fmt::Display for TokenType {
 }
 
 lazy_static! {
-    static ref TOKEN_TYPE_VALUE: HashMap<&'static str, TokenType> = [
-        ("+", Plus),
-        ("-", Minus),
-        ("*", Asterisk),
-        ("/", Slash),
-        ("=", Assign),
-        ("!", Bang),
-        ("<", LT),
-        (">", GT),
-        ("(", LParen),
-        (")", RParen),
-        ("{", LBrace),
-        ("}", RBrace),
-        (",", Comma),
-        (";", Semicolon),
-        ("LET", Let),
-        ("FUNCTION", Function),
-        ("INT", Int),
-        ("IDENT", Ident),
-        ("EOF", EOF),
-        ("ILLEGAL", Illegal),
+    pub(crate) static ref KEYWORDS: HashMap<&'static str, TokenType> = [
+        ("true", True),
+        ("false", False),
+        ("let", Let),
+        ("fn", Function),
+        ("if", If),
+        ("else", Else),
+        ("return", Return),
     ]
     .iter()
     .cloned()
     .collect();
-    pub(crate) static ref KEYWORDS: HashMap<&'static str, TokenType> =
-        [("fn", Function), ("let", Let),].iter().cloned().collect();
 }
