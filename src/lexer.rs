@@ -55,30 +55,46 @@ impl Lexer {
     }
 
     fn next_token(&mut self) -> Token {
+        use TokenType::*;
+
         self.skip_whitespace();
 
         let token = match self.examining_char {
-            Some(ch) if ch == '+' => Token::new(TokenType::Plus, ch.to_string()),
-            Some(ch) if ch == '-' => Token::new(TokenType::Minus, ch.to_string()),
-            Some(ch) if ch == '*' => Token::new(TokenType::Asterisk, ch.to_string()),
-            Some(ch) if ch == '/' => Token::new(TokenType::Slash, ch.to_string()),
-            Some(ch) if ch == '=' => Token::new(TokenType::Assign, ch.to_string()),
-            Some(ch) if ch == '!' => Token::new(TokenType::Bang, ch.to_string()),
-            Some(ch) if ch == '<' => Token::new(TokenType::LT, ch.to_string()),
-            Some(ch) if ch == '>' => Token::new(TokenType::GT, ch.to_string()),
-            Some(ch) if ch == '(' => Token::new(TokenType::LParen, ch.to_string()),
-            Some(ch) if ch == ')' => Token::new(TokenType::RParen, ch.to_string()),
-            Some(ch) if ch == '{' => Token::new(TokenType::LBrace, ch.to_string()),
-            Some(ch) if ch == '}' => Token::new(TokenType::RBrace, ch.to_string()),
-            Some(ch) if ch == ',' => Token::new(TokenType::Comma, ch.to_string()),
-            Some(ch) if ch == ';' => Token::new(TokenType::Semicolon, ch.to_string()),
-            Some(ref ch) if ch.is_ascii_digit() => Token::new(TokenType::Int, self.read_number()),
+            Some(ch) if ch == '+' => Token::new(Plus, ch.to_string()),
+            Some(ch) if ch == '-' => Token::new(Minus, ch.to_string()),
+            Some(ch) if ch == '*' => Token::new(Asterisk, ch.to_string()),
+            Some(ch) if ch == '/' => Token::new(Slash, ch.to_string()),
+            Some(ch) if ch == '=' => {
+                if let Some('=') = self.input.get(self.read_position) {
+                    self.read_char();
+                    Token::new(Equal, format!("{}{}", ch, self.examining_char.unwrap()))
+                } else {
+                    Token::new(Assign, ch.to_string())
+                }
+            }
+            Some(ch) if ch == '!' => {
+                if let Some('=') = self.input.get(self.read_position) {
+                    self.read_char();
+                    Token::new(NotEqual, format!("{}{}", ch, self.examining_char.unwrap()))
+                } else {
+                    Token::new(Bang, ch.to_string())
+                }
+            }
+            Some(ch) if ch == '<' => Token::new(LT, ch.to_string()),
+            Some(ch) if ch == '>' => Token::new(GT, ch.to_string()),
+            Some(ch) if ch == '(' => Token::new(LParen, ch.to_string()),
+            Some(ch) if ch == ')' => Token::new(RParen, ch.to_string()),
+            Some(ch) if ch == '{' => Token::new(LBrace, ch.to_string()),
+            Some(ch) if ch == '}' => Token::new(RBrace, ch.to_string()),
+            Some(ch) if ch == ',' => Token::new(Comma, ch.to_string()),
+            Some(ch) if ch == ';' => Token::new(Semicolon, ch.to_string()),
+            Some(ref ch) if ch.is_ascii_digit() => Token::new(Int, self.read_number()),
             Some(ref ch) if is_letter(ch) => {
                 let ident = self.read_identifier();
                 Token::new(look_up_ident(&ident), ident)
             }
-            Some(ch) => Token::new(TokenType::Illegal, ch.to_string()),
-            None => Token::new(TokenType::EOF, "".to_string()),
+            Some(ch) => Token::new(Illegal, ch.to_string()),
+            None => Token::new(EOF, "".to_string()),
         };
 
         if !(token.token_type.is_keyword() || token.token_type.is_int()) {
@@ -117,6 +133,9 @@ mod tests {
         } else {
             return false;
         }
+
+        10 == 10;
+        10 !=9;
         "
         .to_string()
     }
@@ -189,6 +208,14 @@ mod tests {
             (False, "false"),
             (Semicolon, ";"),
             (RBrace, "}"),
+            (Int, "10"),
+            (Equal, "=="),
+            (Int, "10"),
+            (Semicolon, ";"),
+            (Int, "10"),
+            (NotEqual, "!="),
+            (Int, "9"),
+            (Semicolon, ";"),
             (EOF, ""),
         ]
     }
