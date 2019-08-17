@@ -1,5 +1,6 @@
 use whoami;
 
+mod ast;
 mod lexer;
 mod repl;
 mod token;
