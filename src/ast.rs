@@ -10,7 +10,7 @@ pub(crate) struct Program<T>
 where
     T: Statement,
 {
-    statements: Vec<Box<T>>,
+    statements: Vec<T>,
 }
 
 impl<T> Program<T>
