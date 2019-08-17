@@ -25,8 +25,8 @@ impl Parser {
         self.peek_token = Some(Box::new(self.lexer.next_token()));
     }
 
-    // TODO: fix type (Option<Box<Program<T>>> -> Box<Program<T>>)
+    // TODO:
     fn parser_program<T>(&self) -> Option<Box<Program<T>>> {
-        None
+        unimplemented!()
     }
 }

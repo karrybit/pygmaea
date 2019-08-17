@@ -18,13 +18,13 @@ impl<T> Program<T> {
     }
 }
 
-struct LetStatement<T: Expression> {
+struct LetStatement<'a, T: Expression> {
     token: Token,
-    name: Box<Identifier>,
-    value: Box<T>,
+    name: &'a Identifier,
+    value: &'a T,
 }
 
-impl<T> Node for LetStatement<T>
+impl<'a, T> Node for LetStatement<'a, T>
 where
     T: Expression,
 {
@@ -32,7 +32,7 @@ where
         self.token.literal.clone()
     }
 }
-impl<T, U> Statement<T> for LetStatement<U> where U: Expression {}
+impl<'a, T, U> Statement<T> for LetStatement<'a, U> where U: Expression {}
 
 struct Identifier {
     token: Token,
