@@ -10,7 +10,14 @@ name = "monkey"
 version = "0.1.0"
 dependencies = [
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "whoami 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "whoami"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
 "checksum lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bc5729f27f159ddd61f4df6228e827e86643d4d3e7c32183cb30a1c08f604a14"
+"checksum whoami 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7154f3f4488071a38189dfd63633df444e7be43b731cc12c41505308fc4972f3"

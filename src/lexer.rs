@@ -1,7 +1,7 @@
 use crate::token::{Token, TokenType, KEYWORDS};
 
 #[derive(Default)]
-struct Lexer {
+pub(crate) struct Lexer {
     input: Vec<char>,
     position: usize,
     read_position: usize,
@@ -9,7 +9,7 @@ struct Lexer {
 }
 
 impl Lexer {
-    fn new(input: String) -> Self {
+    pub(crate) fn new(input: String) -> Self {
         let mut lexer = Self {
             input: input.chars().collect(),
             ..Default::default()
@@ -36,7 +36,7 @@ impl Lexer {
 
     fn read_identifier(&mut self) -> String {
         let position = self.position;
-        while self.examining_char.as_ref().map_or(false, is_letter) {
+        while self.examining_char.map_or(false, is_letter) {
             self.read_char();
         }
         self.input[position..self.position].iter().collect()
@@ -54,7 +54,7 @@ impl Lexer {
         self.input[position..self.position].iter().collect()
     }
 
-    fn next_token(&mut self) -> Token {
+    pub(crate) fn next_token(&mut self) -> Token {
         use TokenType::*;
 
         self.skip_whitespace();
@@ -89,7 +89,7 @@ impl Lexer {
             Some(ch) if ch == ',' => Token::new(Comma, ch.to_string()),
             Some(ch) if ch == ';' => Token::new(Semicolon, ch.to_string()),
             Some(ref ch) if ch.is_ascii_digit() => Token::new(Int, self.read_number()),
-            Some(ref ch) if is_letter(ch) => {
+            Some(ch) if is_letter(ch) => {
                 let ident = self.read_identifier();
                 Token::new(look_up_ident(&ident), ident)
             }
@@ -104,8 +104,8 @@ impl Lexer {
     }
 }
 
-fn is_letter(ch: &char) -> bool {
-    ch.is_ascii_alphabetic() || ch == &'_'
+fn is_letter(ch: char) -> bool {
+    ch.is_ascii_alphabetic() || ch == '_'
 }
 
 fn look_up_ident(ident: &str) -> TokenType {

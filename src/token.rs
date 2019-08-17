@@ -17,6 +17,12 @@ impl Token {
     }
 }
 
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[Type:{}, Literal: {}]", self.token_type, self.literal)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub(crate) enum TokenType {
     Plus,
@@ -49,16 +55,23 @@ pub(crate) enum TokenType {
 }
 
 impl TokenType {
-    pub(crate) fn is_keyword(&self) -> bool {
+    pub(crate) fn is_keyword(self) -> bool {
         match self {
             True | False | Let | Function | If | Else | Return | Ident => true,
             _ => false,
         }
     }
 
-    pub(crate) fn is_int(&self) -> bool {
+    pub(crate) fn is_int(self) -> bool {
         match self {
             Int => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_eof(self) -> bool {
+        match self {
+            EOF => true,
             _ => false,
         }
     }
