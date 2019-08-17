@@ -57,26 +57,26 @@ impl Lexer {
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
-        let extract_literal = || {
-            self.input[self.position..self.read_position]
-                .iter()
-                .collect::<String>()
-        };
-
         let token = match self.examining_char {
-            Some('=') => Token::new(TokenType::Assign, extract_literal()),
-            Some(';') => Token::new(TokenType::Semicolon, extract_literal()),
-            Some('(') => Token::new(TokenType::LParen, extract_literal()),
-            Some(')') => Token::new(TokenType::RParen, extract_literal()),
-            Some(',') => Token::new(TokenType::Comma, extract_literal()),
-            Some('+') => Token::new(TokenType::Plus, extract_literal()),
-            Some('{') => Token::new(TokenType::LBrace, extract_literal()),
-            Some('}') => Token::new(TokenType::RBrace, extract_literal()),
+            Some(ch) if ch == '+' => Token::new(TokenType::Plus, ch.to_string()),
+            Some(ch) if ch == '-' => Token::new(TokenType::Minus, ch.to_string()),
+            Some(ch) if ch == '*' => Token::new(TokenType::Asterisk, ch.to_string()),
+            Some(ch) if ch == '/' => Token::new(TokenType::Slash, ch.to_string()),
+            Some(ch) if ch == '=' => Token::new(TokenType::Assign, ch.to_string()),
+            Some(ch) if ch == '!' => Token::new(TokenType::Bang, ch.to_string()),
+            Some(ch) if ch == '<' => Token::new(TokenType::LT, ch.to_string()),
+            Some(ch) if ch == '>' => Token::new(TokenType::GT, ch.to_string()),
+            Some(ch) if ch == '(' => Token::new(TokenType::LParen, ch.to_string()),
+            Some(ch) if ch == ')' => Token::new(TokenType::RParen, ch.to_string()),
+            Some(ch) if ch == '{' => Token::new(TokenType::LBrace, ch.to_string()),
+            Some(ch) if ch == '}' => Token::new(TokenType::RBrace, ch.to_string()),
+            Some(ch) if ch == ',' => Token::new(TokenType::Comma, ch.to_string()),
+            Some(ch) if ch == ';' => Token::new(TokenType::Semicolon, ch.to_string()),
+            Some(ref ch) if ch.is_ascii_digit() => Token::new(TokenType::Int, self.read_number()),
             Some(ref ch) if is_letter(ch) => {
                 let ident = self.read_identifier();
                 Token::new(look_up_ident(&ident), ident)
             }
-            Some(ref ch) if ch.is_ascii_digit() => Token::new(TokenType::Int, self.read_number()),
             Some(ch) => Token::new(TokenType::Illegal, ch.to_string()),
             None => Token::new(TokenType::EOF, "".to_string()),
         };
@@ -110,49 +110,64 @@ mod tests {
         };
 
         let result = add(five, ten);
+        !-/*5;
+        5 < 10 > 5;
         "
         .to_string()
     }
 
     fn setup_expects() -> Vec<(TokenType, &'static str)> {
+        use TokenType::*;
         vec![
-            (TokenType::Let, "let"),
-            (TokenType::Ident, "five"),
-            (TokenType::Assign, "="),
-            (TokenType::Int, "5"),
-            (TokenType::Semicolon, ";"),
-            (TokenType::Let, "let"),
-            (TokenType::Ident, "ten"),
-            (TokenType::Assign, "="),
-            (TokenType::Int, "10"),
-            (TokenType::Semicolon, ";"),
-            (TokenType::Let, "let"),
-            (TokenType::Ident, "add"),
-            (TokenType::Assign, "="),
-            (TokenType::Function, "fn"),
-            (TokenType::LParen, "("),
-            (TokenType::Ident, "x"),
-            (TokenType::Comma, ","),
-            (TokenType::Ident, "y"),
-            (TokenType::RParen, ")"),
-            (TokenType::LBrace, "{"),
-            (TokenType::Ident, "x"),
-            (TokenType::Plus, "+"),
-            (TokenType::Ident, "y"),
-            (TokenType::Semicolon, ";"),
-            (TokenType::RBrace, "}"),
-            (TokenType::Semicolon, ";"),
-            (TokenType::Let, "let"),
-            (TokenType::Ident, "result"),
-            (TokenType::Assign, "="),
-            (TokenType::Ident, "add"),
-            (TokenType::LParen, "("),
-            (TokenType::Ident, "five"),
-            (TokenType::Comma, ","),
-            (TokenType::Ident, "ten"),
-            (TokenType::RParen, ")"),
-            (TokenType::Semicolon, ";"),
-            (TokenType::EOF, ""),
+            (Let, "let"),
+            (Ident, "five"),
+            (Assign, "="),
+            (Int, "5"),
+            (Semicolon, ";"),
+            (Let, "let"),
+            (Ident, "ten"),
+            (Assign, "="),
+            (Int, "10"),
+            (Semicolon, ";"),
+            (Let, "let"),
+            (Ident, "add"),
+            (Assign, "="),
+            (Function, "fn"),
+            (LParen, "("),
+            (Ident, "x"),
+            (Comma, ","),
+            (Ident, "y"),
+            (RParen, ")"),
+            (LBrace, "{"),
+            (Ident, "x"),
+            (Plus, "+"),
+            (Ident, "y"),
+            (Semicolon, ";"),
+            (RBrace, "}"),
+            (Semicolon, ";"),
+            (Let, "let"),
+            (Ident, "result"),
+            (Assign, "="),
+            (Ident, "add"),
+            (LParen, "("),
+            (Ident, "five"),
+            (Comma, ","),
+            (Ident, "ten"),
+            (RParen, ")"),
+            (Semicolon, ";"),
+            (Bang, "!"),
+            (Minus, "-"),
+            (Slash, "/"),
+            (Asterisk, "*"),
+            (Int, "5"),
+            (Semicolon, ";"),
+            (Int, "5"),
+            (LT, "<"),
+            (Int, "10"),
+            (GT, ">"),
+            (Int, "5"),
+            (Semicolon, ";"),
+            (EOF, ""),
         ]
     }
 
