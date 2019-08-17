@@ -1,4 +1,4 @@
-use crate::ast::Program;
+use crate::ast::{Statement, Program};
 use crate::lexer::Lexer;
 use crate::token::Token;
 
@@ -26,7 +26,7 @@ impl Parser {
     }
 
     // TODO:
-    fn parser_program<T>(&self) -> Option<Box<Program<T>>> {
+    fn parser_program<T>(&self) -> Box<Program<T>> where T: Statement {
         unimplemented!()
     }
 }

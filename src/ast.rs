@@ -1,16 +1,22 @@
 use crate::token::Token;
 
-trait Node {
+pub(crate) trait Node {
     fn token_literal(&self) -> String;
 }
-trait Statement<T>: Node {}
+pub(crate) trait Statement: Node {}
 trait Expression: Node {}
 
-pub(crate) struct Program<T> {
-    statements: Vec<Box<dyn Statement<T>>>,
+pub(crate) struct Program<T>
+where
+    T: Statement,
+{
+    statements: Vec<Box<T>>,
 }
 
-impl<T> Program<T> {
+impl<T> Program<T>
+where
+    T: Statement,
+{
     fn token_literal(&self) -> String {
         self.statements
             .get(0)
@@ -32,7 +38,7 @@ where
         self.token.literal.clone()
     }
 }
-impl<T, U> Statement<T> for LetStatement<U> where U: Expression {}
+impl<T> Statement for LetStatement<T> where T: Expression {}
 
 struct Identifier {
     token: Token,
