@@ -11,7 +11,7 @@ pub(crate) enum StatementKind {
 impl Node for StatementKind {
     fn token_literal(&self) -> String {
         match self {
-            StatementKind::LetStatement(statement) => statement.token.literal.clone(),
+            StatementKind::LetStatement(statement) => statement.token_literal(),
         }
     }
 }
@@ -41,7 +41,7 @@ pub(crate) enum ExpressionKind {
 impl Node for ExpressionKind {
     fn token_literal(&self) -> String {
         match self {
-            ExpressionKind::IdentifierExpression(identifier) => identifier.token.literal.clone(),
+            ExpressionKind::IdentifierExpression(identifier) => identifier.token_literal(),
         }
     }
 }
@@ -64,22 +64,4 @@ impl Node for Identifier {
     }
 }
 
-pub(crate) struct Program(Vec<StatementKind>);
-
-impl Program {
-    pub(crate) fn new() -> Program {
-        Self { 0: vec![] }
-    }
-
-    pub(crate) fn push(&mut self, statement_kind: StatementKind) {
-        self.0.push(statement_kind);
-    }
-
-    pub(crate) fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub(crate) fn get(&self, i: usize) -> Option<&StatementKind> {
-        self.0.get(i)
-    }
-}
+type Program = Vec<StatementKind>;
