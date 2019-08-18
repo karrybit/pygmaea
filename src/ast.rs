@@ -64,4 +64,4 @@ impl Node for Identifier {
     }
 }
 
-type Program = Vec<StatementKind>;
+pub(crate) type Program = Vec<StatementKind>;
