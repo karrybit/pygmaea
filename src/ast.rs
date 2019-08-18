@@ -3,52 +3,53 @@ use crate::token::Token;
 pub(crate) trait Node {
     fn token_literal(&self) -> String;
 }
-pub(crate) trait Statement: Node {}
+
+trait Statement: Node {}
 trait Expression: Node {}
 
-pub(crate) struct Program<T>
-where
-    T: Statement,
-{
-    statements: Vec<T>,
+pub(crate) enum StatementType {
+    Let(LetStatement),
 }
 
-impl<T> Program<T>
-where
-    T: Statement,
-{
+pub(crate) enum ExpressionType {
+    Ident(Identifier),
+}
+
+pub(crate) struct Program {
+    pub(crate) statements: Vec<StatementType>,
+}
+
+impl Program {
     fn token_literal(&self) -> String {
         self.statements
             .get(0)
-            .map_or("".to_string(), |statement| statement.token_literal())
+            .map_or("".to_string(), |statement| match statement {
+                StatementType::Let(statement) => statement.token_literal(),
+            })
     }
 }
 
-struct LetStatement<T: Expression> {
-    token: Token,
-    name: Box<Identifier>,
-    value: Box<T>,
+pub(crate) struct LetStatement {
+    pub(crate) token: Token,
+    pub(crate) name: Box<Identifier>,
+    pub(crate) value: Box<ExpressionType>,
 }
 
-impl<T> Node for LetStatement<T>
-where
-    T: Expression,
-{
+impl Statement for LetStatement {}
+impl Node for LetStatement {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
 }
-impl<T> Statement for LetStatement<T> where T: Expression {}
 
-struct Identifier {
-    token: Token,
-    value: String,
+pub(crate) struct Identifier {
+    pub(crate) token: Token,
+    pub(crate) value: String,
 }
 
+impl Expression for Identifier {}
 impl Node for Identifier {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
 }
-
-impl Expression for Identifier {}
