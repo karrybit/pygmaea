@@ -1,6 +1,6 @@
-use crate::ast::Program;
+use crate::ast::{Identifier, LetStatement, Program, StatementKind};
 use crate::lexer::Lexer;
-use crate::token::Token;
+use crate::token::{Token, TokenType};
 
 struct Parser {
     lexer: Lexer,
@@ -25,9 +25,63 @@ impl Parser {
         self.peek_token = Some(Box::new(self.lexer.next_token()));
     }
 
-    // TODO:
-    fn parser_program(&self) -> Program {
-        unimplemented!()
+    fn parse_program(&mut self) -> Program {
+        let mut program = Program::new();
+        while self
+            .current_token
+            .as_ref()
+            .map_or(false, |token| !token.token_type.is_eof())
+        {
+            let statement = self.parse_statement();
+            if let Some(statement) = statement {
+                program.push(statement);
+            }
+            self.next_token();
+        }
+        program
+    }
+
+    fn parse_statement(&mut self) -> Option<StatementKind> {
+        match self.current_token {
+            Some(ref token) if token.token_type == TokenType::Let => self.parse_let_statement(),
+            _ => None,
+        }
+    }
+
+    fn parse_let_statement(&mut self) -> Option<StatementKind> {
+        if !self.peek_token_is(TokenType::Ident) {
+            return None;
+        }
+
+        let let_token = self.current_token.as_ref().unwrap().as_ref().clone();
+        let identifier = Identifier::new(self.peek_token.as_ref().unwrap().clone());
+        self.next_token();
+
+        match self.peek_token {
+            Some(ref token) if token.token_type == TokenType::Assign => {
+                while !self.current_token_is(TokenType::Semicolon) {
+                    self.next_token();
+                }
+                Some(StatementKind::LetStatement(LetStatement::new(
+                    let_token, identifier, None,
+                )))
+            }
+            _ => None,
+        }
+    }
+
+    fn current_token_is(&self, token_type: TokenType) -> bool {
+        match self.current_token {
+            Some(ref token) if token.token_type == token_type => true,
+            _ => false,
+        }
+    }
+
+    fn peek_token_is(&self, token_type: TokenType) -> bool {
+        match self.peek_token {
+            Some(ref token) if token.token_type == token_type => true,
+            _ => false,
+        }
     }
 }
 
@@ -57,46 +111,46 @@ mod tests {
     fn test_let_statement() {
         let input = setup_input();
         let lexer = Lexer::new(input);
-        let parser = Parser::new(lexer);
-        let program = parser.parser_program();
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
 
         assert_eq!(
-            program.statements.len(),
+            program.len(),
             3,
             "program.statements does not contains 3 statements. got={}",
-            program.statements.len()
+            program.len()
         );
 
         setup_expects()
             .into_iter()
             .enumerate()
             .for_each(|(i, expect)| {
-                let statement = program.statements.get(i);
+                let statement = program.get(i);
                 assert!(statement.is_some());
                 assert_let_statement(statement.unwrap(), expect);
             });
     }
 
-    fn assert_let_statement(statement: &StatementType, expect_name: String) {
+    fn assert_let_statement(statement: &StatementKind, expect_name: String) {
         match statement {
-            StatementType::Let(ref let_statement) => {
+            StatementKind::LetStatement(ref statement) => {
                 assert_eq!(
-                    let_statement.token_literal(),
+                    statement.token_literal(),
                     "let".to_string(),
                     "statement.token_literal not 'let'. got={}",
-                    let_statement.token_literal()
+                    statement.token_literal()
                 );
                 assert_eq!(
-                    let_statement.name.value, expect_name,
+                    statement.name.value, expect_name,
                     "let_statement.name.value not '{}'. got={}",
-                    expect_name, let_statement.name.value
+                    expect_name, statement.name.value
                 );
                 assert_eq!(
-                    let_statement.name.token_literal(),
+                    statement.name.token_literal(),
                     expect_name,
                     "let_statement.name.token_literal not '{}'. got={}",
                     expect_name,
-                    let_statement.name.token_literal()
+                    statement.name.token_literal()
                 );
             }
         };

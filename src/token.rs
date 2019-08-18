@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 use TokenType::*;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Default, Clone)]
 pub(crate) struct Token {
     pub(crate) token_type: TokenType,
     pub(crate) literal: String,
@@ -74,6 +74,12 @@ impl TokenType {
             EOF => true,
             _ => false,
         }
+    }
+}
+
+impl Default for TokenType {
+    fn default() -> Self {
+        TokenType::Illegal
     }
 }
 
