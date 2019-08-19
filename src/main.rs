@@ -5,6 +5,7 @@ mod lexer;
 mod parser;
 mod repl;
 mod token;
+mod token_type;
 
 fn main() {
     let username = whoami::username();

@@ -1,6 +1,7 @@
 use crate::ast::{Identifier, LetStatement, Program, StatementKind};
 use crate::lexer::Lexer;
-use crate::token::{Token, TokenType};
+use crate::token::Token;
+use crate::token_type::TokenType;
 
 struct Parser {
     lexer: Lexer,

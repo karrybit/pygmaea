@@ -1,4 +1,5 @@
-use crate::token::{Token, TokenType, KEYWORDS};
+use crate::token::Token;
+use crate::token_type::{TokenType, KEYWORDS};
 
 #[derive(Default)]
 pub(crate) struct Lexer {
@@ -114,7 +115,7 @@ fn look_up_ident(ident: &str) -> TokenType {
 
 #[cfg(test)]
 mod tests {
-    use crate::token::*;
+    use crate::token_type::*;
 
     fn setup_input() -> String {
         "let five = 5;

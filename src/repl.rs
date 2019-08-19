@@ -1,10 +1,13 @@
 use crate::lexer::Lexer;
 use std::io::Write;
 
+const PROMPT: &'static str = ">>";
+const EXIT_COMMAND: [&'static str; 3] = [":exit", ":quit", ":q"];
+
 pub(crate) fn start() {
     loop {
         let mut command = String::new();
-        print!(">> ");
+        print!("{} ", PROMPT);
         std::io::stdout().flush().unwrap();
         std::io::stdin()
             .read_line(&mut command)
@@ -13,7 +16,7 @@ pub(crate) fn start() {
         if command.is_empty() {
             continue;
         }
-        if [":exit", ":quit", ":q"].contains(&command.trim()) {
+        if EXIT_COMMAND.contains(&command.trim()) {
             break;
         }
 
