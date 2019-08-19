@@ -1,18 +1,19 @@
 DOCKER = docker run -it -w /mnt -v ${PWD}:/mnt monkey
 
-fmt:
-	$(DOCKER) cargo $@
-
 check:
+	cargo fmt
 	$(DOCKER) cargo $@
 
 build:
+	cargo fmt
 	$(DOCKER) cargo $@
 
 run:
+	cargo fmt
 	$(DOCKER) cargo $@
 
 test:
+	cargo fmt
 	$(DOCKER) cargo $@
 
 coverage:
