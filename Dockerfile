@@ -1,4 +1,3 @@
-FROM ubuntu
 FROM rust:latest
 
 LABEL maintainer "Takumi Karibe <takumi.k.5610@gmail.com>"
