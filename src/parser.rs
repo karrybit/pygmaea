@@ -1,4 +1,5 @@
 use crate::ast::{Identifier, LetStatement, Program, StatementKind};
+use crate::error::ParseError;
 use crate::lexer::Lexer;
 use crate::token::Token;
 use crate::token_type::TokenType;
@@ -7,6 +8,7 @@ struct Parser {
     lexer: Lexer,
     current_token: Option<Box<Token>>,
     peek_token: Option<Box<Token>>,
+    errors: Vec<ParseError>,
 }
 
 impl Parser {
@@ -15,6 +17,7 @@ impl Parser {
             lexer,
             current_token: None,
             peek_token: None,
+            errors: vec![],
         };
         parser.next_token();
         parser.next_token();
@@ -51,6 +54,7 @@ impl Parser {
 
     fn parse_let_statement(&mut self) -> Option<StatementKind> {
         if !self.peek_token_is(TokenType::Ident) {
+            self.peek_error(TokenType::Ident);
             return None;
         }
 
@@ -58,16 +62,16 @@ impl Parser {
         let identifier = Identifier::new(self.peek_token.as_ref().unwrap().clone());
         self.next_token();
 
-        match self.peek_token {
-            Some(ref token) if token.token_type == TokenType::Assign => {
-                while !self.current_token_is(TokenType::Semicolon) {
-                    self.next_token();
-                }
-                Some(StatementKind::LetStatement(LetStatement::new(
-                    let_token, identifier, None,
-                )))
+        if self.peek_token_is(TokenType::Assign) {
+            while !self.current_token_is(TokenType::Semicolon) {
+                self.next_token();
             }
-            _ => None,
+            Some(StatementKind::LetStatement(LetStatement::new(
+                let_token, identifier, None,
+            )))
+        } else {
+            self.peek_error(TokenType::Assign);
+            None
         }
     }
 
@@ -78,11 +82,23 @@ impl Parser {
         }
     }
 
-    fn peek_token_is(&self, token_type: TokenType) -> bool {
+    fn peek_token_is(&mut self, token_type: TokenType) -> bool {
         match self.peek_token {
             Some(ref token) if token.token_type == token_type => true,
             _ => false,
         }
+    }
+
+    fn peek_error(&mut self, token_type: TokenType) {
+        self.errors.push(ParseError::PeekTokenError {
+            msg: format!(
+                "expected next token to be {}, got {} instead",
+                token_type,
+                self.peek_token
+                    .as_ref()
+                    .map_or("".to_string(), |t| format!("{}", t.token_type))
+            ),
+        })
     }
 }
 
@@ -114,6 +130,7 @@ mod tests {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
+        check_parser_errors(&parser);
 
         assert_eq!(
             program.len(),
@@ -155,5 +172,19 @@ mod tests {
                 );
             }
         };
+    }
+
+    fn check_parser_errors(parser: &Parser) {
+        if parser.errors.is_empty() {
+            return;
+        }
+
+        eprintln!("parser has {} errors", parser.errors.len());
+        parser
+            .errors
+            .iter()
+            .for_each(|err| eprintln!("parser error: {}", err));
+
+        panic!();
     }
 }
