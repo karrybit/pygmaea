@@ -1,4 +1,4 @@
-use crate::ast::{Identifier, LetStatement, Program, StatementKind};
+use crate::ast::{Identifier, LetStatement, Program, ReturnStatement, Statement};
 use crate::error::ParseError;
 use crate::lexer::Lexer;
 use crate::token::Token;
@@ -45,34 +45,46 @@ impl Parser {
         program
     }
 
-    fn parse_statement(&mut self) -> Option<StatementKind> {
+    fn parse_statement(&mut self) -> Option<Statement> {
         match self.current_token {
             Some(ref token) if token.token_type == TokenType::Let => self.parse_let_statement(),
+            Some(ref token) if token.token_type == TokenType::Return => {
+                self.parse_return_statement()
+            }
             _ => None,
         }
     }
 
-    fn parse_let_statement(&mut self) -> Option<StatementKind> {
+    fn parse_let_statement(&mut self) -> Option<Statement> {
         if !self.peek_token_is(TokenType::Ident) {
             self.peek_error(TokenType::Ident);
             return None;
         }
 
-        let let_token = self.current_token.as_ref().unwrap().as_ref().clone();
-        let identifier = Identifier::new(self.peek_token.as_ref().unwrap().clone());
+        let let_token = self.current_token.as_ref().cloned().unwrap();
+        let identifier = Identifier::new(self.peek_token.as_ref().cloned().unwrap());
         self.next_token();
 
         if self.peek_token_is(TokenType::Assign) {
             while !self.current_token_is(TokenType::Semicolon) {
                 self.next_token();
             }
-            Some(StatementKind::LetStatement(LetStatement::new(
+            Some(Statement::Let(LetStatement::new(
                 let_token, identifier, None,
             )))
         } else {
             self.peek_error(TokenType::Assign);
             None
         }
+    }
+
+    fn parse_return_statement(&mut self) -> Option<Statement> {
+        let statement = ReturnStatement::new(self.current_token.as_ref().cloned().unwrap());
+        self.next_token();
+        while !self.current_token_is(TokenType::Semicolon) {
+            self.next_token();
+        }
+        Some(Statement::Return(statement))
     }
 
     fn current_token_is(&self, token_type: TokenType) -> bool {
@@ -108,7 +120,7 @@ mod tests {
     use crate::ast::*;
     use crate::lexer::Lexer;
 
-    fn setup_input() -> String {
+    fn setup_let_statement_input() -> String {
         "
         let x = 5;
         let y = 10;
@@ -126,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_let_statement() {
-        let input = setup_input();
+        let input = setup_let_statement_input();
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
@@ -135,7 +147,7 @@ mod tests {
         assert_eq!(
             program.len(),
             3,
-            "program.statements does not contains 3 statements. got={}",
+            "program does not contains 3 statements. got={}",
             program.len()
         );
 
@@ -149,9 +161,9 @@ mod tests {
             });
     }
 
-    fn assert_let_statement(statement: &StatementKind, expect_name: String) {
+    fn assert_let_statement(statement: &Statement, expect_name: String) {
         match statement {
-            StatementKind::LetStatement(ref statement) => {
+            Statement::Let(ref statement) => {
                 assert_eq!(
                     statement.token_literal(),
                     "let".to_string(),
@@ -171,7 +183,45 @@ mod tests {
                     statement.name.token_literal()
                 );
             }
+            other_statement => panic!(format!(
+                "statement not ReturnStatement. got={}",
+                other_statement
+            )),
         };
+    }
+
+    fn setup_return_statement_input() -> String {
+        "
+        return 5;
+        return 10;
+        return 993322;
+        "
+        .to_string()
+    }
+
+    #[test]
+    fn test_return_statement() {
+        let input = setup_return_statement_input();
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        assert_eq!(
+            3,
+            program.len(),
+            "program does not contain 3 statements. got={}",
+            program.len()
+        );
+
+        program.iter().for_each(|statement| match statement {
+            Statement::Return(statement) => assert_eq!("return", statement.token_literal()),
+            other_statement => panic!(format!(
+                "statement not ReturnStatement. got={}",
+                other_statement
+            )),
+        })
     }
 
     fn check_parser_errors(parser: &Parser) {
