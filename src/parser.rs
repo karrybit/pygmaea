@@ -1,13 +1,23 @@
-use crate::ast::{Identifier, LetStatement, Program, ReturnStatement, Statement};
+use crate::ast::*;
 use crate::error::ParseError;
 use crate::lexer::Lexer;
 use crate::token::Token;
 use crate::token_type::TokenType;
 
+enum PriorityType {
+    Lowest,
+    Equals,
+    LessGreater,
+    Sum,
+    Product,
+    Prefix,
+    Call,
+}
+
 struct Parser {
     lexer: Lexer,
-    current_token: Option<Box<Token>>,
-    peek_token: Option<Box<Token>>,
+    current_token: Box<Token>,
+    peek_token: Box<Token>,
     errors: Vec<ParseError>,
 }
 
@@ -15,8 +25,8 @@ impl Parser {
     fn new(lexer: Lexer) -> Self {
         let mut parser = Self {
             lexer,
-            current_token: None,
-            peek_token: None,
+            current_token: Default::default(),
+            peek_token: Default::default(),
             errors: vec![],
         };
         parser.next_token();
@@ -25,19 +35,14 @@ impl Parser {
     }
 
     fn next_token(&mut self) {
-        self.current_token = std::mem::replace(&mut self.peek_token, None);
-        self.peek_token = Some(Box::new(self.lexer.next_token()));
+        self.current_token = std::mem::replace(&mut self.peek_token, Default::default());
+        self.peek_token = Box::new(self.lexer.next_token());
     }
 
     fn parse_program(&mut self) -> Program {
         let mut program = Program::new();
-        while self
-            .current_token
-            .as_ref()
-            .map_or(false, |token| !token.token_type.is_eof())
-        {
-            let statement = self.parse_statement();
-            if let Some(statement) = statement {
+        while !self.current_token.token_type.is_eof() {
+            if let Some(statement) = self.parse_statement() {
                 program.push(statement);
             }
             self.next_token();
@@ -46,12 +51,10 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
-        match self.current_token {
-            Some(ref token) if token.token_type == TokenType::Let => self.parse_let_statement(),
-            Some(ref token) if token.token_type == TokenType::Return => {
-                self.parse_return_statement()
-            }
-            _ => None,
+        match self.current_token.token_type {
+            TokenType::Let => self.parse_let_statement(),
+            TokenType::Return => Some(self.parse_return_statement()),
+            _ => Some(self.parse_expression_statement()),
         }
     }
 
@@ -61,8 +64,8 @@ impl Parser {
             return None;
         }
 
-        let let_token = self.current_token.as_ref().cloned().unwrap();
-        let identifier = Identifier::new(self.peek_token.as_ref().cloned().unwrap());
+        let let_token = self.current_token.clone();
+        let identifier = Identifier::new(self.peek_token.clone());
         self.next_token();
 
         if self.peek_token_is(TokenType::Assign) {
@@ -78,37 +81,46 @@ impl Parser {
         }
     }
 
-    fn parse_return_statement(&mut self) -> Option<Statement> {
-        let statement = ReturnStatement::new(self.current_token.as_ref().cloned().unwrap());
+    fn parse_return_statement(&mut self) -> Statement {
+        let statement = ReturnStatement::new(self.current_token.clone());
         self.next_token();
         while !self.current_token_is(TokenType::Semicolon) {
             self.next_token();
         }
-        Some(Statement::Return(statement))
+        Statement::Return(statement)
+    }
+
+    fn parse_expression_statement(&mut self) -> Statement {
+        let mut statement = ExpressionStatement::new(self.current_token.clone());
+        statement.expression = self.parse_expression(PriorityType::Lowest);
+        if self.peek_token_is(TokenType::Semicolon) {
+            self.next_token();
+        }
+        Statement::Expression(statement)
+    }
+
+    fn parse_expression(&self, priority_type: PriorityType) -> Option<Box<Expression>> {
+        match self.current_token.token_type {
+            TokenType::Ident => Some(Box::new(Expression::Identifier(Identifier::new(
+                self.current_token.clone(),
+            )))),
+            _ => None,
+        }
     }
 
     fn current_token_is(&self, token_type: TokenType) -> bool {
-        match self.current_token {
-            Some(ref token) if token.token_type == token_type => true,
-            _ => false,
-        }
+        self.current_token.token_type == token_type
     }
 
     fn peek_token_is(&mut self, token_type: TokenType) -> bool {
-        match self.peek_token {
-            Some(ref token) if token.token_type == token_type => true,
-            _ => false,
-        }
+        self.peek_token.token_type == token_type
     }
 
     fn peek_error(&mut self, token_type: TokenType) {
         self.errors.push(ParseError::PeekTokenError {
             msg: format!(
                 "expected next token to be {}, got {} instead",
-                token_type,
-                self.peek_token
-                    .as_ref()
-                    .map_or("".to_string(), |t| format!("{}", t.token_type))
+                token_type, self.peek_token.token_type
             ),
         })
     }
@@ -145,8 +157,8 @@ mod tests {
         check_parser_errors(&parser);
 
         assert_eq!(
-            program.len(),
             3,
+            program.len(),
             "program does not contains 3 statements. got={}",
             program.len()
         );
@@ -165,19 +177,19 @@ mod tests {
         match statement {
             Statement::Let(ref statement) => {
                 assert_eq!(
-                    statement.token_literal(),
                     "let".to_string(),
+                    statement.token_literal(),
                     "statement.token_literal not 'let'. got={}",
                     statement.token_literal()
                 );
                 assert_eq!(
-                    statement.name.value, expect_name,
+                    expect_name, statement.name.value,
                     "let_statement.name.value not '{}'. got={}",
                     expect_name, statement.name.value
                 );
                 assert_eq!(
-                    statement.name.token_literal(),
                     expect_name,
+                    statement.name.token_literal(),
                     "let_statement.name.token_literal not '{}'. got={}",
                     expect_name,
                     statement.name.token_literal()
@@ -216,12 +228,62 @@ mod tests {
         );
 
         program.iter().for_each(|statement| match statement {
-            Statement::Return(statement) => assert_eq!("return", statement.token_literal()),
+            Statement::Return(statement) => assert_eq!(
+                "return",
+                statement.token_literal(),
+                "statement.token_literal not 'return'. got={}",
+                statement.token_literal()
+            ),
             other_statement => panic!(format!(
                 "statement not ReturnStatement. got={}",
                 other_statement
             )),
         })
+    }
+
+    #[test]
+    fn test_identifier_expression() {
+        let input = "foobar;".to_string();
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parser_errors(&parser);
+
+        assert_eq!(
+            1,
+            program.len(),
+            "program has not enough etatements. got={}",
+            program.len()
+        );
+
+        if let Statement::Expression(statement) = program.get(0).unwrap() {
+            let expression: &Expression = statement.expression.as_ref().unwrap();
+            match expression {
+                Expression::Identifier(identifier) => {
+                    assert_eq!(
+                        "foobar", identifier.value,
+                        "identifier value not {}. got={}",
+                        "foobar", identifier.value
+                    );
+                    assert_eq!(
+                        "foobar",
+                        identifier.token_literal(),
+                        "identifier token_literal() not {}. got={}",
+                        "foobar",
+                        identifier.token_literal()
+                    );
+                }
+                _ => {
+                    panic!("expression not Identifier. got={}", expression);
+                }
+            }
+        } else {
+            panic!(
+                "program statement is not ExpressionStatement. got={}",
+                program.get(0).unwrap()
+            );
+        }
     }
 
     fn check_parser_errors(parser: &Parser) {

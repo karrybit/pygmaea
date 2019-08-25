@@ -96,8 +96,8 @@ impl std::fmt::Display for ReturnStatement {
 }
 
 pub(crate) struct ExpressionStatement {
-    token: Box<Token>,
-    expression: Option<Box<Expression>>,
+    pub(crate) token: Box<Token>,
+    pub(crate) expression: Option<Box<Expression>>,
 }
 
 impl ExpressionStatement {
