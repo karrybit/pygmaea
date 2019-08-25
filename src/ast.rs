@@ -130,6 +130,7 @@ impl std::fmt::Display for ExpressionStatement {
 pub(crate) enum Expression {
     Identifier(Identifier),
     Integer(IntegerLiteral),
+    Prefix(PrefixExpression),
 }
 
 impl Node for Expression {
@@ -137,6 +138,7 @@ impl Node for Expression {
         match self {
             Expression::Identifier(identifier) => identifier.token_literal(),
             Expression::Integer(integer_literal) => integer_literal.token_literal(),
+            Expression::Prefix(prefix) => prefix.token_literal(),
         }
     }
 }
@@ -146,6 +148,7 @@ impl std::fmt::Display for Expression {
         match self {
             Expression::Identifier(identifier) => write!(f, "{}", identifier),
             Expression::Integer(integer_literal) => write!(f, "{}", integer_literal),
+            Expression::Prefix(prefix) => write!(f, "{}", prefix),
         }
     }
 }
@@ -198,6 +201,42 @@ impl Node for IntegerLiteral {
 impl std::fmt::Display for IntegerLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.value)
+    }
+}
+
+pub(crate) struct PrefixExpression {
+    pub(crate) token: Box<Token>,
+    pub(crate) operator: String,
+    pub(crate) right: Option<Box<Expression>>,
+}
+
+impl PrefixExpression {
+    pub(crate) fn new(token: Box<Token>) -> Self {
+        let operator = token.literal.clone();
+        Self {
+            token,
+            operator,
+            right: None,
+        }
+    }
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl std::fmt::Display for PrefixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "({}{})",
+            self.operator,
+            self.right
+                .as_ref()
+                .map_or("".to_string(), |right| format!("{}", right).to_string())
+        )
     }
 }
 

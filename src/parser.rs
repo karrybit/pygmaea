@@ -99,7 +99,7 @@ impl Parser {
         Statement::Expression(statement)
     }
 
-    fn parse_expression(&self, priority_type: PriorityType) -> Option<Box<Expression>> {
+    fn parse_expression(&mut self, priority_type: PriorityType) -> Option<Box<Expression>> {
         match self.current_token.token_type {
             TokenType::Ident => Some(Box::new(Expression::Identifier(Identifier::new(
                 self.current_token.clone(),
@@ -107,7 +107,18 @@ impl Parser {
             TokenType::Int => Some(Box::new(Expression::Integer(IntegerLiteral::new(
                 self.current_token.clone(),
             )))),
-            _ => None,
+            TokenType::Bang | TokenType::Minus => {
+                let mut prefix_expression = PrefixExpression::new(self.current_token.clone());
+                self.next_token();
+                prefix_expression.right = self.parse_expression(PriorityType::Prefix);
+                Some(Box::new(Expression::Prefix(prefix_expression)))
+            }
+            _ => {
+                self.errors.push(ParseError::NoPrefixParseError(
+                    self.current_token.token_type,
+                ));
+                None
+            }
         }
     }
 }
@@ -123,12 +134,10 @@ impl Parser {
     }
 
     fn peek_error(&mut self, token_type: TokenType) {
-        self.errors.push(ParseError::PeekTokenError {
-            msg: format!(
-                "expected next token to be {}, got {} instead",
-                token_type, self.peek_token.token_type
-            ),
-        })
+        self.errors.push(ParseError::PeekTokenError(
+            token_type,
+            self.peek_token.token_type,
+        ))
     }
 }
 
@@ -147,7 +156,7 @@ mod tests {
         .to_string()
     }
 
-    fn setup_expects() -> Vec<String> {
+    fn setup_let_statement_expects() -> Vec<String> {
         vec!["x", "y", "foobar"]
             .into_iter()
             .map(str::to_string)
@@ -169,7 +178,7 @@ mod tests {
             program.len()
         );
 
-        setup_expects()
+        setup_let_statement_expects()
             .into_iter()
             .enumerate()
             .for_each(|(i, expect)| {
@@ -330,6 +339,77 @@ mod tests {
                 "program statements is not ExpressionStatement. got={}",
                 program.get(0).unwrap()
             );
+        }
+    }
+
+    fn setup_parsing_prefix_expression_input() -> Vec<String> {
+        vec!["!5".to_string(), "-15".to_string()]
+    }
+
+    fn setup_parsing_prefix_expression_expect() -> Vec<(String, i64)> {
+        vec![("!".to_string(), 5), ("-".to_string(), 15)]
+    }
+
+    #[test]
+    fn test_parsing_prefix_expression() {
+        let inputs = setup_parsing_prefix_expression_input();
+        let expects = setup_parsing_prefix_expression_expect();
+        inputs
+            .into_iter()
+            .zip(expects.into_iter())
+            .for_each(|(input, expect)| {
+                let lexer = Lexer::new(input);
+                let mut parser = Parser::new(lexer);
+                let program = parser.parse_program();
+                check_parser_errors(&parser);
+
+                assert_eq!(
+                    1,
+                    program.len(),
+                    "program statements does not contain 1 statements. got={}",
+                    program.len()
+                );
+
+                if let Statement::Expression(statement) = program.get(0).unwrap() {
+                    let expression: &Expression = statement.expression.as_ref().unwrap();
+                    match expression {
+                        Expression::Prefix(prefix) => {
+                            assert_eq!(
+                                expect.0, prefix.operator,
+                                "expression operator is not {}. got={}",
+                                expect.0, prefix.operator
+                            );
+                            assert_integer_literal(&prefix.right, expect.1);
+                        }
+                        _ => panic!("expression is not PrefixExpression. got={}", expression),
+                    }
+                } else {
+                    panic!(
+                        "program statements is not ExpressionStatement. got={}",
+                        program.get(0).unwrap()
+                    );
+                }
+            });
+    }
+
+    fn assert_integer_literal(expression: &Option<Box<Expression>>, value: i64) {
+        let expression: &Expression = &expression.as_ref().expect("right expression is None.");
+        match expression {
+            Expression::Integer(literal) => {
+                assert_eq!(
+                    value, literal.value,
+                    "literal value not {}. got={}",
+                    value, literal.value
+                );
+                assert_eq!(
+                    value.to_string(),
+                    literal.token_literal(),
+                    "literal token_literal not {}. got={}",
+                    value.to_string(),
+                    literal.token_literal()
+                );
+            }
+            _ => panic!("expression not IntegerLiteral. got={}", expression),
         }
     }
 
