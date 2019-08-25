@@ -129,12 +129,14 @@ impl std::fmt::Display for ExpressionStatement {
 
 pub(crate) enum Expression {
     Identifier(Identifier),
+    Integer(IntegerLiteral),
 }
 
 impl Node for Expression {
     fn token_literal(&self) -> String {
         match self {
             Expression::Identifier(identifier) => identifier.token_literal(),
+            Expression::Integer(integer_literal) => integer_literal.token_literal(),
         }
     }
 }
@@ -143,6 +145,7 @@ impl std::fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Expression::Identifier(identifier) => write!(f, "{}", identifier),
+            Expression::Integer(integer_literal) => write!(f, "{}", integer_literal),
         }
     }
 }
@@ -166,6 +169,33 @@ impl Node for Identifier {
 }
 
 impl std::fmt::Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+pub(crate) struct IntegerLiteral {
+    pub(crate) token: Box<Token>,
+    pub(crate) value: i64,
+}
+
+impl IntegerLiteral {
+    pub(crate) fn new(token: Box<Token>) -> Self {
+        let value = token
+            .literal
+            .parse::<i64>()
+            .expect(format!("could not parse {} as integer", token.literal).as_str());
+        Self { token, value }
+    }
+}
+
+impl Node for IntegerLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl std::fmt::Display for IntegerLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }

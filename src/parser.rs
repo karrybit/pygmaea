@@ -104,10 +104,16 @@ impl Parser {
             TokenType::Ident => Some(Box::new(Expression::Identifier(Identifier::new(
                 self.current_token.clone(),
             )))),
+            TokenType::Int => Some(Box::new(Expression::Integer(IntegerLiteral::new(
+                self.current_token.clone(),
+            )))),
             _ => None,
         }
     }
+}
 
+// utility functions
+impl Parser {
     fn current_token_is(&self, token_type: TokenType) -> bool {
         self.current_token.token_type == token_type
     }
@@ -281,6 +287,47 @@ mod tests {
         } else {
             panic!(
                 "program statement is not ExpressionStatement. got={}",
+                program.get(0).unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn test_integer_literal_expression() {
+        let input = "5;".to_string();
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        check_parser_errors(&parser);
+
+        assert_eq!(
+            1,
+            program.len(),
+            "program has not enough statements. got={}",
+            program.len()
+        );
+
+        if let Statement::Expression(statement) = program.get(0).unwrap() {
+            let expression: &Expression = statement.expression.as_ref().unwrap();
+            match expression {
+                Expression::Integer(literal) => {
+                    assert_eq!(
+                        5, literal.value,
+                        "literal value not 5. got={}",
+                        literal.value
+                    );
+                    assert_eq!(
+                        "5".to_string(),
+                        literal.token_literal(),
+                        "literal token_literal not '5'. got={}",
+                        literal.token_literal()
+                    );
+                }
+                _ => panic!("expression not IntegerLiteral. got={}", expression),
+            }
+        } else {
+            panic!(
+                "program statements is not ExpressionStatement. got={}",
                 program.get(0).unwrap()
             );
         }
