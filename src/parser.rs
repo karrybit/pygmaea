@@ -64,8 +64,11 @@ impl Parser {
             return None;
         }
 
-        let let_token = self.current_token.clone();
-        let identifier = Identifier::new(self.peek_token.clone());
+        let let_token = std::mem::replace(&mut self.current_token, Box::new(Default::default()));
+        let identifier = Identifier::new(std::mem::replace(
+            &mut self.peek_token,
+            Box::new(Default::default()),
+        ));
         self.next_token();
 
         if self.peek_token_is(TokenType::Assign) {
@@ -82,7 +85,10 @@ impl Parser {
     }
 
     fn parse_return_statement(&mut self) -> Statement {
-        let statement = ReturnStatement::new(self.current_token.clone());
+        let statement = ReturnStatement::new(std::mem::replace(
+            &mut self.current_token,
+            Box::new(Default::default()),
+        ));
         self.next_token();
         while !self.current_token_is(TokenType::Semicolon) {
             self.next_token();
@@ -91,8 +97,7 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Statement {
-        let mut statement = ExpressionStatement::new(self.current_token.clone());
-        statement.expression = self.parse_expression(PriorityType::Lowest);
+        let statement = ExpressionStatement::new(self.parse_expression(PriorityType::Lowest));
         if self.peek_token_is(TokenType::Semicolon) {
             self.next_token();
         }
@@ -102,13 +107,16 @@ impl Parser {
     fn parse_expression(&mut self, priority_type: PriorityType) -> Option<Box<Expression>> {
         match self.current_token.token_type {
             TokenType::Ident => Some(Box::new(Expression::Identifier(Identifier::new(
-                self.current_token.clone(),
+                std::mem::replace(&mut self.current_token, Box::new(Default::default())),
             )))),
             TokenType::Int => Some(Box::new(Expression::Integer(IntegerLiteral::new(
-                self.current_token.clone(),
+                std::mem::replace(&mut self.current_token, Box::new(Default::default())),
             )))),
             TokenType::Bang | TokenType::Minus => {
-                let mut prefix_expression = PrefixExpression::new(self.current_token.clone());
+                let mut prefix_expression = PrefixExpression::new(std::mem::replace(
+                    &mut self.current_token,
+                    Box::new(Default::default()),
+                ));
                 self.next_token();
                 prefix_expression.right = self.parse_expression(PriorityType::Prefix);
                 Some(Box::new(Expression::Prefix(prefix_expression)))

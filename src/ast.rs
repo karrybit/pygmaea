@@ -96,22 +96,20 @@ impl std::fmt::Display for ReturnStatement {
 }
 
 pub(crate) struct ExpressionStatement {
-    pub(crate) token: Box<Token>,
     pub(crate) expression: Option<Box<Expression>>,
 }
 
 impl ExpressionStatement {
-    pub(crate) fn new(token: Box<Token>) -> Self {
-        Self {
-            token: token,
-            expression: None,
-        }
+    pub(crate) fn new(expression: Option<Box<Expression>>) -> Self {
+        Self { expression }
     }
 }
 
 impl Node for ExpressionStatement {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.expression
+            .as_ref()
+            .map_or("".to_string(), |expression| expression.token_literal())
     }
 }
 
