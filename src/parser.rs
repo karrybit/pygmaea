@@ -16,8 +16,8 @@ enum PriorityType {
 
 struct Parser {
     lexer: Lexer,
-    current_token: Box<Token>,
-    peek_token: Box<Token>,
+    current_token: Option<Box<Token>>,
+    peek_token: Option<Box<Token>>,
     errors: Vec<ParseError>,
 }
 
@@ -35,13 +35,17 @@ impl Parser {
     }
 
     fn next_token(&mut self) {
-        self.current_token = std::mem::replace(&mut self.peek_token, Default::default());
-        self.peek_token = Box::new(self.lexer.next_token());
+        self.current_token = std::mem::replace(&mut self.peek_token, None);
+        self.peek_token = Some(Box::new(self.lexer.next_token()));
     }
 
     fn parse_program(&mut self) -> Program {
         let mut program = Program::new();
-        while !self.current_token.token_type.is_eof() {
+        while self
+            .current_token
+            .as_ref()
+            .map_or(false, |token| !token.token_type.is_eof())
+        {
             if let Some(statement) = self.parse_statement() {
                 program.push(statement);
             }
@@ -51,9 +55,11 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
-        match self.current_token.token_type {
-            TokenType::Let => self.parse_let_statement(),
-            TokenType::Return => Some(self.parse_return_statement()),
+        match self.current_token {
+            Some(ref token) if token.token_type == TokenType::Let => self.parse_let_statement(),
+            Some(ref token) if token.token_type == TokenType::Return => {
+                self.parse_return_statement()
+            }
             _ => Some(self.parse_expression_statement()),
         }
     }
@@ -64,11 +70,22 @@ impl Parser {
             return None;
         }
 
-        let let_token = std::mem::replace(&mut self.current_token, Box::new(Default::default()));
-        let identifier = Identifier::new(std::mem::replace(
-            &mut self.peek_token,
-            Box::new(Default::default()),
-        ));
+        let let_token = match std::mem::replace(&mut self.current_token, None) {
+            Some(token) => token,
+            None => {
+                self.errors.push(ParseError::NoneTokenError);
+                return None;
+            }
+        };
+
+        let identifier = Identifier::new(match std::mem::replace(&mut self.peek_token, None) {
+            Some(token) => token,
+            None => {
+                self.errors.push(ParseError::NoneTokenError);
+                return None;
+            }
+        });
+
         self.next_token();
 
         if self.peek_token_is(TokenType::Assign) {
@@ -84,16 +101,22 @@ impl Parser {
         }
     }
 
-    fn parse_return_statement(&mut self) -> Statement {
-        let statement = ReturnStatement::new(std::mem::replace(
-            &mut self.current_token,
-            Box::new(Default::default()),
-        ));
+    fn parse_return_statement(&mut self) -> Option<Statement> {
+        let statement =
+            ReturnStatement::new(match std::mem::replace(&mut self.current_token, None) {
+                Some(token) => token,
+                None => {
+                    self.errors.push(ParseError::NoneTokenError);
+                    return None;
+                }
+            });
+
         self.next_token();
         while !self.current_token_is(TokenType::Semicolon) {
             self.next_token();
         }
-        Statement::Return(statement)
+
+        Some(Statement::Return(statement))
     }
 
     fn parse_expression_statement(&mut self) -> Statement {
@@ -105,26 +128,53 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, priority_type: PriorityType) -> Option<Box<Expression>> {
-        match self.current_token.token_type {
-            TokenType::Ident => Some(Box::new(Expression::Identifier(Identifier::new(
-                std::mem::replace(&mut self.current_token, Box::new(Default::default())),
-            )))),
-            TokenType::Int => Some(Box::new(Expression::Integer(IntegerLiteral::new(
-                std::mem::replace(&mut self.current_token, Box::new(Default::default())),
-            )))),
-            TokenType::Bang | TokenType::Minus => {
-                let mut prefix_expression = PrefixExpression::new(std::mem::replace(
-                    &mut self.current_token,
-                    Box::new(Default::default()),
-                ));
+        match self.current_token {
+            Some(ref token) if token.token_type == TokenType::Ident => {
+                Some(Box::new(Expression::Identifier(Identifier::new(
+                    match std::mem::replace(&mut self.current_token, None) {
+                        Some(token) => token,
+                        None => {
+                            self.errors.push(ParseError::NoneTokenError);
+                            return None;
+                        }
+                    },
+                ))))
+            }
+
+            Some(ref token) if token.token_type == TokenType::Int => {
+                Some(Box::new(Expression::Integer(IntegerLiteral::new(
+                    match std::mem::replace(&mut self.current_token, None) {
+                        Some(token) => token,
+                        None => {
+                            self.errors.push(ParseError::NoneTokenError);
+                            return None;
+                        }
+                    },
+                ))))
+            }
+
+            Some(ref token)
+                if token.token_type == TokenType::Bang || token.token_type == TokenType::Minus =>
+            {
+                let mut prefix_expression =
+                    PrefixExpression::new(match std::mem::replace(&mut self.current_token, None) {
+                        Some(token) => token,
+                        None => {
+                            self.errors.push(ParseError::NoneTokenError);
+                            return None;
+                        }
+                    });
                 self.next_token();
                 prefix_expression.right = self.parse_expression(PriorityType::Prefix);
                 Some(Box::new(Expression::Prefix(prefix_expression)))
             }
+
             _ => {
-                self.errors.push(ParseError::NoPrefixParseError(
-                    self.current_token.token_type,
-                ));
+                self.errors
+                    .push(ParseError::NoPrefixParseError(std::mem::replace(
+                        &mut self.current_token,
+                        None,
+                    )));
                 None
             }
         }
@@ -134,17 +184,21 @@ impl Parser {
 // utility functions
 impl Parser {
     fn current_token_is(&self, token_type: TokenType) -> bool {
-        self.current_token.token_type == token_type
+        self.current_token
+            .as_ref()
+            .map_or(false, |token| token.token_type == token_type)
     }
 
     fn peek_token_is(&mut self, token_type: TokenType) -> bool {
-        self.peek_token.token_type == token_type
+        self.peek_token
+            .as_ref()
+            .map_or(false, |token| token.token_type == token_type)
     }
 
     fn peek_error(&mut self, token_type: TokenType) {
         self.errors.push(ParseError::PeekTokenError(
             token_type,
-            self.peek_token.token_type,
+            std::mem::replace(&mut self.peek_token, None),
         ))
     }
 }
