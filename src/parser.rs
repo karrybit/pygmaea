@@ -242,11 +242,9 @@ mod tests {
 
         setup_let_statement_expects()
             .into_iter()
-            .enumerate()
-            .for_each(|(i, expect)| {
-                let statement = program.get(i);
-                assert!(statement.is_some());
-                assert_let_statement(statement.unwrap(), expect);
+            .zip(program.iter())
+            .for_each(|(expect, statement)| {
+                assert_let_statement(statement, expect);
             });
     }
 
