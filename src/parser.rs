@@ -1,18 +1,9 @@
 use crate::ast::*;
 use crate::error::ParseError;
 use crate::lexer::Lexer;
+use crate::precedence::Precedence;
 use crate::token::Token;
 use crate::token_type::TokenType;
-
-enum PriorityType {
-    Lowest,
-    Equals,
-    LessGreater,
-    Sum,
-    Product,
-    Prefix,
-    Call,
-}
 
 struct Parser {
     lexer: Lexer,
@@ -73,7 +64,7 @@ impl Parser {
         let let_token = match std::mem::replace(&mut self.current_token, None) {
             Some(token) => token,
             None => {
-                self.errors.push(ParseError::NoneTokenError);
+                self.errors.push(ParseError::NoneToken);
                 return None;
             }
         };
@@ -81,7 +72,7 @@ impl Parser {
         let identifier = Identifier::new(match std::mem::replace(&mut self.peek_token, None) {
             Some(token) => token,
             None => {
-                self.errors.push(ParseError::NoneTokenError);
+                self.errors.push(ParseError::NoneToken);
                 return None;
             }
         });
@@ -106,7 +97,7 @@ impl Parser {
             ReturnStatement::new(match std::mem::replace(&mut self.current_token, None) {
                 Some(token) => token,
                 None => {
-                    self.errors.push(ParseError::NoneTokenError);
+                    self.errors.push(ParseError::NoneToken);
                     return None;
                 }
             });
@@ -120,21 +111,21 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Statement {
-        let statement = ExpressionStatement::new(self.parse_expression(PriorityType::Lowest));
+        let statement = ExpressionStatement::new(self.parse_expression(Precedence::Lowest));
         if self.peek_token_is(TokenType::Semicolon) {
             self.next_token();
         }
         Statement::Expression(statement)
     }
 
-    fn parse_expression(&mut self, priority_type: PriorityType) -> Option<Box<Expression>> {
+    fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<Expression>> {
         match self.current_token {
             Some(ref token) if token.token_type == TokenType::Ident => {
                 Some(Box::new(Expression::Identifier(Identifier::new(
                     match std::mem::replace(&mut self.current_token, None) {
                         Some(token) => token,
                         None => {
-                            self.errors.push(ParseError::NoneTokenError);
+                            self.errors.push(ParseError::NoneToken);
                             return None;
                         }
                     },
@@ -146,38 +137,96 @@ impl Parser {
                     match std::mem::replace(&mut self.current_token, None) {
                         Some(token) => token,
                         None => {
-                            self.errors.push(ParseError::NoneTokenError);
+                            self.errors.push(ParseError::NoneToken);
                             return None;
                         }
                     },
                 ))))
             }
 
-            Some(ref token)
-                if token.token_type == TokenType::Bang || token.token_type == TokenType::Minus =>
-            {
-                let mut prefix_expression =
-                    PrefixExpression::new(match std::mem::replace(&mut self.current_token, None) {
-                        Some(token) => token,
+            Some(ref token) => {
+                if token.token_type == TokenType::Bang || token.token_type == TokenType::Minus {
+                    let mut left_expression = match self.parse_prefix_expression() {
+                        Some(left_expression) => left_expression,
                         None => {
-                            self.errors.push(ParseError::NoneTokenError);
+                            self.errors.push(ParseError::FailedToParsePrefixExpression);
                             return None;
                         }
-                    });
-                self.next_token();
-                prefix_expression.right = self.parse_expression(PriorityType::Prefix);
-                Some(Box::new(Expression::Prefix(prefix_expression)))
+                    };
+
+                    while !self.current_token_is(TokenType::Semicolon)
+                        && self.peek_token.as_ref().map_or(false, |token| {
+                            Precedence::look_up_by(token.token_type)
+                                .map_or(false, |looked_up_precedence| {
+                                    precedence < looked_up_precedence
+                                })
+                        })
+                    {
+                        let precedence = match Precedence::look_up_by(
+                            self.peek_token
+                                .as_ref()
+                                .map_or(TokenType::Illegal, |token| token.token_type),
+                        ) {
+                            Some(precedence) => precedence,
+                            None => return Some(left_expression),
+                        };
+
+                        self.next_token();
+                        left_expression =
+                            match self.parse_infix_expression(left_expression, precedence) {
+                                Some(left_expression) => left_expression,
+                                None => {
+                                    self.errors.push(ParseError::FailedToParseInfixExpression);
+                                    return None;
+                                }
+                            };
+                    }
+
+                    Some(left_expression)
+                } else {
+                    self.errors
+                        .push(ParseError::NoPrefixParse(std::mem::replace(
+                            &mut self.current_token,
+                            None,
+                        )));
+                    None
+                }
             }
 
-            _ => {
-                self.errors
-                    .push(ParseError::NoPrefixParseError(std::mem::replace(
-                        &mut self.current_token,
-                        None,
-                    )));
-                None
-            }
+            _ => None,
         }
+    }
+
+    fn parse_prefix_expression(&mut self) -> Option<Box<Expression>> {
+        let mut prefix_expression =
+            PrefixExpression::new(match std::mem::replace(&mut self.current_token, None) {
+                Some(token) => token,
+                None => {
+                    self.errors.push(ParseError::NoneToken);
+                    return None;
+                }
+            });
+        self.next_token();
+        prefix_expression.right = self.parse_expression(Precedence::Prefix);
+        Some(Box::new(Expression::Prefix(prefix_expression)))
+    }
+
+    fn parse_infix_expression(
+        &mut self,
+        left_expression: Box<Expression>,
+        precedence: Precedence,
+    ) -> Option<Box<Expression>> {
+        let token = match std::mem::replace(&mut self.current_token, None) {
+            Some(token) => token,
+            None => {
+                self.errors.push(ParseError::NoneToken);
+                return None;
+            }
+        };
+        let mut infix_expression = InfixExpression::new(token, left_expression);
+        self.next_token();
+        infix_expression.right = self.parse_expression(precedence);
+        Some(Box::new(Expression::Infix(infix_expression)))
     }
 }
 
@@ -196,7 +245,7 @@ impl Parser {
     }
 
     fn peek_error(&mut self, token_type: TokenType) {
-        self.errors.push(ParseError::PeekTokenError(
+        self.errors.push(ParseError::PeekToken(
             token_type,
             std::mem::replace(&mut self.peek_token, None),
         ))
@@ -449,6 +498,64 @@ mod tests {
                         program.get(0).unwrap()
                     );
                 }
+            });
+    }
+
+    fn setup_parsing_infix_expression_input() -> Vec<String> {
+        vec![
+            "5 + 5;".to_string(),
+            "5 - 5;".to_string(),
+            "5 * 5;".to_string(),
+            "5 / 5;".to_string(),
+            "5 > 5;".to_string(),
+            "5 < 5;".to_string(),
+            "5 == 5;".to_string(),
+            "5 != 5;".to_string(),
+        ]
+    }
+
+    fn setup_parsing_infix_expression_expect() -> Vec<(i64, String, i64)> {
+        vec![
+            (5, "+".to_string(), 5),
+            (5, "-".to_string(), 5),
+            (5, "*".to_string(), 5),
+            (5, "/".to_string(), 5),
+            (5, ">".to_string(), 5),
+            (5, "<".to_string(), 5),
+            (5, "==".to_string(), 5),
+            (5, "!=".to_string(), 5),
+        ]
+    }
+
+    // #[test]
+    fn test_parsing_infix_expression() {
+        let inputs = setup_parsing_infix_expression_input();
+        let expects = setup_parsing_infix_expression_expect();
+
+        inputs
+            .into_iter()
+            .zip(expects.into_iter())
+            .for_each(|(input, expect)| {
+                let mut parser = Parser::new(Lexer::new(input));
+                let program = parser.parse_program();
+
+                assert_eq!(1, program.len());
+                let statement = match program.get(0).unwrap() {
+                    Statement::Expression(statement) => statement,
+                    _ => panic!("program statement is not ExpressionStatement."),
+                };
+                let expression = match statement.expression {
+                    Some(ref expression) => expression,
+                    None => panic!("expression is none"),
+                };
+                let expression: &Expression = expression;
+                let infix_expression = match expression {
+                    Expression::Infix(expression) => expression,
+                    _ => panic!("expression is not InfixExpression."),
+                };
+                assert_integer_literal(&infix_expression.right, expect.0);
+                assert_eq!(expect.1, infix_expression.operator);
+                assert_integer_literal(&infix_expression.right, expect.2);
             });
     }
 

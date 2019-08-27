@@ -70,7 +70,7 @@ pub(crate) struct ReturnStatement {
 impl ReturnStatement {
     pub(crate) fn new(token: Box<Token>) -> Self {
         Self {
-            token: token,
+            token,
             return_value: None,
         }
     }
@@ -129,6 +129,7 @@ pub(crate) enum Expression {
     Identifier(Identifier),
     Integer(IntegerLiteral),
     Prefix(PrefixExpression),
+    Infix(InfixExpression),
 }
 
 impl Node for Expression {
@@ -137,6 +138,7 @@ impl Node for Expression {
             Expression::Identifier(identifier) => identifier.token_literal(),
             Expression::Integer(integer_literal) => integer_literal.token_literal(),
             Expression::Prefix(prefix) => prefix.token_literal(),
+            Expression::Infix(infix) => infix.token_literal(),
         }
     }
 }
@@ -147,6 +149,7 @@ impl std::fmt::Display for Expression {
             Expression::Identifier(identifier) => write!(f, "{}", identifier),
             Expression::Integer(integer_literal) => write!(f, "{}", integer_literal),
             Expression::Prefix(prefix) => write!(f, "{}", prefix),
+            Expression::Infix(infix) => write!(f, "{}", infix),
         }
     }
 }
@@ -234,6 +237,45 @@ impl std::fmt::Display for PrefixExpression {
             self.right
                 .as_ref()
                 .map_or("".to_string(), |right| format!("{}", right).to_string())
+        )
+    }
+}
+
+pub(crate) struct InfixExpression {
+    pub(crate) token: Box<Token>,
+    pub(crate) left: Box<Expression>,
+    pub(crate) operator: String,
+    pub(crate) right: Option<Box<Expression>>,
+}
+
+impl InfixExpression {
+    pub(crate) fn new(token: Box<Token>, left: Box<Expression>) -> Self {
+        let operator = token.literal.clone();
+        Self {
+            token,
+            left,
+            operator,
+            right: None,
+        }
+    }
+}
+
+impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl std::fmt::Display for InfixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "({} {} {})",
+            self.left,
+            self.operator,
+            self.right
+                .as_ref()
+                .map_or("".to_string(), |right| format!("{}", right))
         )
     }
 }

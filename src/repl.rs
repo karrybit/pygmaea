@@ -1,8 +1,8 @@
 use crate::lexer::Lexer;
 use std::io::Write;
 
-const PROMPT: &'static str = ">>";
-const EXIT_COMMAND: [&'static str; 3] = [":exit", ":quit", ":q"];
+const PROMPT: &str = ">>";
+const EXIT_COMMAND: [&str; 3] = [":exit", ":quit", ":q"];
 
 pub(crate) fn start() {
     loop {

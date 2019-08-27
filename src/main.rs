@@ -4,6 +4,7 @@ mod ast;
 mod error;
 mod lexer;
 mod parser;
+mod precedence;
 mod repl;
 mod token;
 mod token_type;
