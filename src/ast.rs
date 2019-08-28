@@ -96,32 +96,24 @@ impl std::fmt::Display for ReturnStatement {
 }
 
 pub(crate) struct ExpressionStatement {
-    pub(crate) expression: Option<Box<Expression>>,
+    pub(crate) expression: Box<Expression>,
 }
 
 impl ExpressionStatement {
-    pub(crate) fn new(expression: Option<Box<Expression>>) -> Self {
+    pub(crate) fn new(expression: Box<Expression>) -> Self {
         Self { expression }
     }
 }
 
 impl Node for ExpressionStatement {
     fn token_literal(&self) -> String {
-        self.expression
-            .as_ref()
-            .map_or("".to_string(), |expression| expression.token_literal())
+        self.expression.token_literal()
     }
 }
 
 impl std::fmt::Display for ExpressionStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.expression
-                .as_ref()
-                .map_or("".to_string(), |v| format!("{}", v))
-        )
+        write!(f, "{}", self.expression)
     }
 }
 
@@ -208,16 +200,16 @@ impl std::fmt::Display for IntegerLiteral {
 pub(crate) struct PrefixExpression {
     pub(crate) token: Box<Token>,
     pub(crate) operator: String,
-    pub(crate) right: Option<Box<Expression>>,
+    pub(crate) right: Box<Expression>,
 }
 
 impl PrefixExpression {
-    pub(crate) fn new(token: Box<Token>) -> Self {
+    pub(crate) fn new(token: Box<Token>, right: Box<Expression>) -> Self {
         let operator = token.literal.clone();
         Self {
             token,
             operator,
-            right: None,
+            right,
         }
     }
 }
@@ -230,14 +222,7 @@ impl Node for PrefixExpression {
 
 impl std::fmt::Display for PrefixExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "({}{})",
-            self.operator,
-            self.right
-                .as_ref()
-                .map_or("".to_string(), |right| format!("{}", right).to_string())
-        )
+        write!(f, "({}{})", self.operator, self.right,)
     }
 }
 
@@ -245,17 +230,17 @@ pub(crate) struct InfixExpression {
     pub(crate) token: Box<Token>,
     pub(crate) left: Box<Expression>,
     pub(crate) operator: String,
-    pub(crate) right: Option<Box<Expression>>,
+    pub(crate) right: Box<Expression>,
 }
 
 impl InfixExpression {
-    pub(crate) fn new(token: Box<Token>, left: Box<Expression>) -> Self {
+    pub(crate) fn new(token: Box<Token>, left: Box<Expression>, right: Box<Expression>) -> Self {
         let operator = token.literal.clone();
         Self {
             token,
             left,
             operator,
-            right: None,
+            right,
         }
     }
 }
@@ -268,15 +253,7 @@ impl Node for InfixExpression {
 
 impl std::fmt::Display for InfixExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "({} {} {})",
-            self.left,
-            self.operator,
-            self.right
-                .as_ref()
-                .map_or("".to_string(), |right| format!("{}", right))
-        )
+        write!(f, "({} {} {})", self.left, self.operator, self.right)
     }
 }
 
