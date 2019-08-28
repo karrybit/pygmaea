@@ -4,6 +4,7 @@ pub(crate) trait Node {
     fn token_literal(&self) -> String;
 }
 
+#[derive(Debug)]
 pub(crate) enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
@@ -30,6 +31,7 @@ impl std::fmt::Display for Statement {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct LetStatement {
     pub(crate) token: Box<Token>,
     pub(crate) name: Identifier,
@@ -62,6 +64,7 @@ impl std::fmt::Display for LetStatement {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ReturnStatement {
     pub(crate) token: Box<Token>,
     pub(crate) return_value: Option<Box<Expression>>,
@@ -95,6 +98,7 @@ impl std::fmt::Display for ReturnStatement {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ExpressionStatement {
     pub(crate) expression: Box<Expression>,
 }
@@ -117,6 +121,7 @@ impl std::fmt::Display for ExpressionStatement {
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum Expression {
     Identifier(Identifier),
     Integer(IntegerLiteral),
@@ -146,6 +151,7 @@ impl std::fmt::Display for Expression {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Identifier {
     pub(crate) token: Box<Token>,
     pub(crate) value: String,
@@ -170,6 +176,7 @@ impl std::fmt::Display for Identifier {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct IntegerLiteral {
     pub(crate) token: Box<Token>,
     pub(crate) value: i64,
@@ -197,6 +204,7 @@ impl std::fmt::Display for IntegerLiteral {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct PrefixExpression {
     pub(crate) token: Box<Token>,
     pub(crate) operator: String,
@@ -226,6 +234,7 @@ impl std::fmt::Display for PrefixExpression {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct InfixExpression {
     pub(crate) token: Box<Token>,
     pub(crate) left: Box<Expression>,
@@ -258,6 +267,12 @@ impl std::fmt::Display for InfixExpression {
 }
 
 pub(crate) type Program = Vec<Statement>;
+
+pub(crate) fn string(program: &Program) -> String {
+    program
+        .iter()
+        .fold(String::new(), |string, ast| format!("{}{}", string, ast))
+}
 
 #[cfg(test)]
 mod tests {

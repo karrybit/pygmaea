@@ -452,11 +452,14 @@ mod tests {
     }
 
     fn setup_parsing_prefix_expression_input() -> Vec<String> {
-        vec!["!5".to_string(), "-15".to_string()]
+        vec!["!5", "-15"].into_iter().map(String::from).collect()
     }
 
     fn setup_parsing_prefix_expression_expect() -> Vec<(String, i64)> {
-        vec![("!".to_string(), 5), ("-".to_string(), 15)]
+        vec![("!", 5), ("-", 15)]
+            .into_iter()
+            .map(|(prefix, value)| (prefix.to_string(), value))
+            .collect()
     }
 
     #[test]
@@ -503,28 +506,27 @@ mod tests {
 
     fn setup_parsing_infix_expression_input() -> Vec<String> {
         vec![
-            "5 + 5;".to_string(),
-            "5 - 5;".to_string(),
-            "5 * 5;".to_string(),
-            "5 / 5;".to_string(),
-            "5 > 5;".to_string(),
-            "5 < 5;".to_string(),
-            "5 == 5;".to_string(),
-            "5 != 5;".to_string(),
+            "5 + 5;", "5 - 5;", "5 * 5;", "5 / 5;", "5 > 5;", "5 < 5;", "5 == 5;", "5 != 5;",
         ]
+        .into_iter()
+        .map(String::from)
+        .collect()
     }
 
     fn setup_parsing_infix_expression_expect() -> Vec<(i64, String, i64)> {
         vec![
-            (5, "+".to_string(), 5),
-            (5, "-".to_string(), 5),
-            (5, "*".to_string(), 5),
-            (5, "/".to_string(), 5),
-            (5, ">".to_string(), 5),
-            (5, "<".to_string(), 5),
-            (5, "==".to_string(), 5),
-            (5, "!=".to_string(), 5),
+            (5, "+", 5),
+            (5, "-", 5),
+            (5, "*", 5),
+            (5, "/", 5),
+            (5, ">", 5),
+            (5, "<", 5),
+            (5, "==", 5),
+            (5, "!=", 5),
         ]
+        .into_iter()
+        .map(|(left, op, right)| (left, op.to_string(), right))
+        .collect()
     }
 
     #[test]
@@ -578,6 +580,68 @@ mod tests {
             }
             _ => panic!("expression not IntegerLiteral. got={}", expression),
         }
+    }
+
+    fn setup_operator_precedence_parsing_input() -> Vec<String> {
+        vec![
+            "-a * b",
+            "!-a",
+            "a + b + c",
+            "a + b - c",
+            "a * b * c",
+            "a * b / c",
+            "a + b / c",
+            "a + b * c + d / e - f",
+            "3 + 4; -5 * 5",
+            "5 > 4 == 3 < 4",
+            "5 < 4 != 3 > 4",
+            "3 + 4 * 5 == 3 * 1 + 4 * 5",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect()
+    }
+
+    fn setup_operator_precedence_parsing_expect() -> Vec<String> {
+        vec![
+            "((-a) * b)",
+            "(!(-a))",
+            "((a + b) + c)",
+            "((a + b) - c)",
+            "((a * b) * c)",
+            "((a * b) / c)",
+            "(a + (b / c))",
+            "(((a + (b * c)) + (d / e)) - f)",
+            "(3 + 4)((-5) * 5)",
+            "((5 > 4) == (3 < 4))",
+            "((5 < 4) != (3 > 4))",
+            "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect()
+    }
+
+    #[test]
+    fn test_operator_precedence_parsing() {
+        let inputs = setup_operator_precedence_parsing_input();
+        let expects = setup_operator_precedence_parsing_expect();
+        inputs
+            .into_iter()
+            .zip(expects.into_iter())
+            .for_each(|(input, expect)| {
+                let mut parser = Parser::new(Lexer::new(input));
+                let program = parser.parse_program();
+                check_parser_errors(&parser);
+                assert!(program.first().is_some(), "first is none");
+                assert_eq!(
+                    expect,
+                    string(&program),
+                    "expected={}, got={}",
+                    expect,
+                    string(&program)
+                );
+            })
     }
 
     fn check_parser_errors(parser: &Parser) {
