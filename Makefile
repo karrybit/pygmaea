@@ -4,6 +4,7 @@ check:
 	cargo fmt
 	$(DOCKER) cargo $@
 
+.PHONY: build
 build:
 	cargo fmt
 	$(DOCKER) cargo $@
@@ -11,6 +12,10 @@ build:
 run:
 	cargo fmt
 	$(DOCKER) cargo $@
+
+debug: build
+	cargo fmt
+	$(DOCKER) rust-lldb target/debug/monkey
 
 test:
 	cargo fmt
