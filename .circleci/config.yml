@@ -48,7 +48,6 @@ jobs:
           command: cargo test
       - run:
           name: generate coverage
-          command: |
-            sh coverage.sh
+          command: sh coverage.sh
       - codecov/upload:
           file: lcov.info

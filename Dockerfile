@@ -13,7 +13,7 @@ RUN rustup update
 RUN rustup self update
 RUN rustup install stable
 RUN rustup install nightly
-RUN rustup component add rustfmt
+RUN rustup component add rustfmt clippy
 RUN cargo install grcov
 
 RUN rustup default stable

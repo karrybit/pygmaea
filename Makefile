@@ -1,24 +1,27 @@
 DOCKER = docker run -it -w /mnt -v ${PWD}:/mnt monkey
 
-check:
-	cargo fmt
+.PHONY: fmt
+fmt:
+	$(DOCKER) cargo $@
+
+.PHONY: clippy
+clippy:
+	$(DOCKER) cargo $@
+
+check: fmt clippy
 	$(DOCKER) cargo $@
 
 .PHONY: build
-build:
-	cargo fmt
+build: fmt clippy
 	$(DOCKER) cargo $@
 
-run:
-	cargo fmt
+run: fmt clippy
 	$(DOCKER) cargo $@
 
-debug: build
-	cargo fmt
+debug: fmt clippy build
 	$(DOCKER) rust-lldb target/debug/monkey
 
-test:
-	cargo fmt
+test: fmt clippy
 	$(DOCKER) cargo $@
 
 coverage:
