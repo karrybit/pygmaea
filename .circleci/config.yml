@@ -51,5 +51,4 @@ jobs:
           command: |
             sh coverage.sh
       - codecov/upload:
-          name: upload codecov
           file: lcov.info
