@@ -1,0 +1,5 @@
+ignore:
+  - ../src/error.rs
+  - ../src/main.rs
+  - ../src/repl.rs
+  - ../src/token.rs
