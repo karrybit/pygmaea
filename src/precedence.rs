@@ -17,8 +17,8 @@ impl Precedence {
         match token_type {
             TokenType::Equal => Some(Precedence::Equals),
             TokenType::NotEqual => Some(Precedence::Equals),
-            TokenType::LT => Some(Precedence::LessGreater),
-            TokenType::GT => Some(Precedence::LessGreater),
+            TokenType::LessThan => Some(Precedence::LessGreater),
+            TokenType::GreaterThan => Some(Precedence::LessGreater),
             TokenType::Plus => Some(Precedence::Sum),
             TokenType::Minus => Some(Precedence::Sum),
             TokenType::Slash => Some(Precedence::Product),
