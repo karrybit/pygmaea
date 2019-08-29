@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_default() {
         use TokenType::*;
-        let token_type: TokenType = Default::default();
+        let token_type: TokenType = TokenType::default();
         assert_eq!(token_type, Illegal);
     }
 
