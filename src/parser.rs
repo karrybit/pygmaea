@@ -37,7 +37,7 @@ impl Parser {
             .as_ref()
             .map_or(false, |token| !token.token_type.is_eof())
         {
-            if let Some(statement) = self.parse_statement() {
+            if let Ok(statement) = self.parse_statement() {
                 program.push(statement);
             }
             self.next_token();
@@ -45,7 +45,7 @@ impl Parser {
         program
     }
 
-    fn parse_statement(&mut self) -> Option<Statement> {
+    fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.current_token {
             Some(ref token) if token.token_type == TokenType::Let => self.parse_let_statement(),
             Some(ref token) if token.token_type == TokenType::Return => {
@@ -55,74 +55,85 @@ impl Parser {
         }
     }
 
-    fn parse_let_statement(&mut self) -> Option<Statement> {
+    fn parse_let_statement(&mut self) -> Result<Statement, ParseError> {
         if !self.peek_token_is(TokenType::Ident) {
             self.peek_error(TokenType::Ident);
-            return None;
+            return Err(ParseError::Statement(ParseStatementError::LetStatement));
         }
 
         let let_token = match std::mem::replace(&mut self.current_token, None) {
             Some(token) => token,
             None => {
                 self.errors.push(ParseError::NoneToken);
-                return None;
+                return Err(ParseError::Statement(ParseStatementError::LetStatement));
             }
         };
 
-        let identifier = Identifier::new(match std::mem::replace(&mut self.peek_token, None) {
+        self.next_token();
+        let identifier = Identifier::new(match std::mem::replace(&mut self.current_token, None) {
             Some(token) => token,
             None => {
                 self.errors.push(ParseError::NoneToken);
-                return None;
+                return Err(ParseError::Statement(ParseStatementError::LetStatement));
             }
         });
 
         self.next_token();
 
-        if self.peek_token_is(TokenType::Assign) {
-            while !self.current_token_is(TokenType::Semicolon) {
-                self.next_token();
-            }
-            Some(Statement::Let(LetStatement::new(
-                let_token, identifier, None,
+        if self.current_token_is(TokenType::Assign) {
+            self.next_token();
+            let expression = match self.parse_expression(Precedence::Lowest) {
+                Ok(expression) => expression,
+                Err(e) => {
+                    self.errors.push(e);
+                    return Err(ParseError::Statement(ParseStatementError::LetStatement));
+                }
+            };
+            Ok(Statement::Let(LetStatement::new(
+                let_token, identifier, expression,
             )))
         } else {
             self.peek_error(TokenType::Assign);
-            None
+            Err(ParseError::Statement(ParseStatementError::LetStatement))
         }
     }
 
-    fn parse_return_statement(&mut self) -> Option<Statement> {
-        let statement =
-            ReturnStatement::new(match std::mem::replace(&mut self.current_token, None) {
-                Some(token) => token,
-                None => {
-                    self.errors.push(ParseError::NoneToken);
-                    return None;
-                }
-            });
+    fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
+        let token = match std::mem::replace(&mut self.current_token, None) {
+            Some(token) => token,
+            None => {
+                self.errors.push(ParseError::NoneToken);
+                return Err(ParseError::Statement(ParseStatementError::ReturnStatement));
+            }
+        };
 
         self.next_token();
-        while !self.current_token_is(TokenType::Semicolon) {
-            self.next_token();
-        }
-
-        Some(Statement::Return(statement))
-    }
-
-    fn parse_expression_statement(&mut self) -> Option<Statement> {
         let expression = match self.parse_expression(Precedence::Lowest) {
             Ok(expression) => expression,
             Err(e) => {
                 self.errors.push(e);
-                return None;
+                return Err(ParseError::Statement(ParseStatementError::ReturnStatement));
+            }
+        };
+
+        Ok(Statement::Return(ReturnStatement::new(token, expression)))
+    }
+
+    fn parse_expression_statement(&mut self) -> Result<Statement, ParseError> {
+        let expression = match self.parse_expression(Precedence::Lowest) {
+            Ok(expression) => expression,
+            Err(e) => {
+                self.errors.push(e);
+                return Err(ParseError::Statement(
+                    ParseStatementError::ExpressionStatement,
+                ));
             }
         };
         let statement = ExpressionStatement::new(expression);
         if self.peek_token_is(TokenType::Semicolon) {
             self.next_token();
         }
-        Some(Statement::Expression(statement))
+        Ok(Statement::Expression(statement))
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Box<Expression>, ParseError> {

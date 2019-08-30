@@ -5,7 +5,15 @@ use crate::token_type::TokenType;
 pub(crate) enum ParseError {
     NoneToken,
     PeekToken(TokenType, Option<Box<Token>>),
+    Statement(ParseStatementError),
     Expression(ParseExpressionError),
+}
+
+#[derive(Debug)]
+pub(crate) enum ParseStatementError {
+    LetStatement,
+    ReturnStatement,
+    ExpressionStatement,
 }
 
 #[derive(Debug)]
@@ -29,6 +37,19 @@ impl std::fmt::Display for ParseError {
                 f,
                 "occur something error that does not to be catched any patterns."
             ),
+        }
+    }
+}
+
+impl std::error::Error for ParseStatementError {}
+impl std::fmt::Display for ParseStatementError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ParseStatementError::LetStatement => write!(f, "failed to parse LetStatement."),
+            ParseStatementError::ReturnStatement => write!(f, "failed to parse ReturnStatement."),
+            ParseStatementError::ExpressionStatement => {
+                write!(f, "failed to parse ExpressionStatement.")
+            }
         }
     }
 }

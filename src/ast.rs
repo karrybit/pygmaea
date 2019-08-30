@@ -35,11 +35,11 @@ impl std::fmt::Display for Statement {
 pub(crate) struct LetStatement {
     pub(crate) token: Box<Token>,
     pub(crate) name: Identifier,
-    pub(crate) value: Option<Box<Expression>>,
+    pub(crate) value: Box<Expression>,
 }
 
 impl LetStatement {
-    pub(crate) fn new(token: Box<Token>, name: Identifier, value: Option<Box<Expression>>) -> Self {
+    pub(crate) fn new(token: Box<Token>, name: Identifier, value: Box<Expression>) -> Self {
         Self { token, name, value }
     }
 }
@@ -58,8 +58,6 @@ impl std::fmt::Display for LetStatement {
             self.token_literal(),
             self.name,
             self.value
-                .as_ref()
-                .map_or("".to_string(), |v| format!("{}", v))
         )
     }
 }
@@ -67,14 +65,14 @@ impl std::fmt::Display for LetStatement {
 #[derive(Debug)]
 pub(crate) struct ReturnStatement {
     pub(crate) token: Box<Token>,
-    pub(crate) return_value: Option<Box<Expression>>,
+    pub(crate) return_value: Box<Expression>,
 }
 
 impl ReturnStatement {
-    pub(crate) fn new(token: Box<Token>) -> Self {
+    pub(crate) fn new(token: Box<Token>, return_value: Box<Expression>) -> Self {
         Self {
             token,
-            return_value: None,
+            return_value,
         }
     }
 }
@@ -87,14 +85,7 @@ impl Node for ReturnStatement {
 
 impl std::fmt::Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {};",
-            self.token_literal(),
-            self.return_value
-                .as_ref()
-                .map_or("".to_string(), |v| format!("{}", v))
-        )
+        write!(f, "{} {};", self.token_literal(), self.return_value)
     }
 }
 
@@ -127,6 +118,7 @@ pub(crate) enum Expression {
     Integer(IntegerLiteral),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
+    Boolean(Boolean),
 }
 
 impl Node for Expression {
@@ -136,6 +128,7 @@ impl Node for Expression {
             Expression::Integer(integer_literal) => integer_literal.token_literal(),
             Expression::Prefix(prefix) => prefix.token_literal(),
             Expression::Infix(infix) => infix.token_literal(),
+            Expression::Boolean(boolean) => boolean.token_literal(),
         }
     }
 }
@@ -147,6 +140,7 @@ impl std::fmt::Display for Expression {
             Expression::Integer(integer_literal) => write!(f, "{}", integer_literal),
             Expression::Prefix(prefix) => write!(f, "{}", prefix),
             Expression::Infix(infix) => write!(f, "{}", infix),
+            Expression::Boolean(boolean) => write!(f, "{}", boolean),
         }
     }
 }
@@ -187,7 +181,7 @@ impl IntegerLiteral {
         let value = token
             .literal
             .parse::<i64>()
-            .expect(format!("could not parse {} as integer", token.literal).as_str());
+            .unwrap_or_else(|e| panic!("could not parse {} as integer", e));
         Self { token, value }
     }
 }
@@ -266,6 +260,30 @@ impl std::fmt::Display for InfixExpression {
     }
 }
 
+#[derive(Debug)]
+pub(crate) struct Boolean {
+    pub(crate) token: Box<Token>,
+    pub(crate) value: bool,
+}
+
+impl Boolean {
+    pub(crate) fn new(token: Box<Token>, value: bool) -> Self {
+        Self { token, value }
+    }
+}
+
+impl std::fmt::Display for Boolean {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+impl Node for Boolean {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
 pub(crate) type Program = Vec<Statement>;
 
 pub(crate) fn string(program: &Program) -> String {
@@ -285,9 +303,9 @@ mod tests {
         let program: Program = vec![Statement::Let(LetStatement::new(
             Box::new(Token::new(TokenType::Let, "let".to_string())),
             Identifier::new(Box::new(Token::new(TokenType::Ident, "myVar".to_string()))),
-            Some(Box::new(Expression::Identifier(Identifier::new(Box::new(
+            Box::new(Expression::Identifier(Identifier::new(Box::new(
                 Token::new(TokenType::Ident, "anotherVar".to_string()),
-            ))))),
+            )))),
         ))];
 
         assert_eq!(
