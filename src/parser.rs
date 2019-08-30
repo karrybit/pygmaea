@@ -58,14 +58,14 @@ impl Parser {
     fn parse_let_statement(&mut self) -> Result<Statement, ParseError> {
         if !self.peek_token_is(TokenType::Ident) {
             self.peek_error(TokenType::Ident);
-            return Err(ParseError::Statement(ParseStatementError::LetStatement));
+            return Err(ParseError::Statement(ParseStatementError::Let));
         }
 
         let let_token = match std::mem::replace(&mut self.current_token, None) {
             Some(token) => token,
             None => {
                 self.errors.push(ParseError::NoneToken);
-                return Err(ParseError::Statement(ParseStatementError::LetStatement));
+                return Err(ParseError::Statement(ParseStatementError::Let));
             }
         };
 
@@ -74,7 +74,7 @@ impl Parser {
             Some(token) => token,
             None => {
                 self.errors.push(ParseError::NoneToken);
-                return Err(ParseError::Statement(ParseStatementError::LetStatement));
+                return Err(ParseError::Statement(ParseStatementError::Let));
             }
         });
 
@@ -86,7 +86,7 @@ impl Parser {
                 Ok(expression) => expression,
                 Err(e) => {
                     self.errors.push(e);
-                    return Err(ParseError::Statement(ParseStatementError::LetStatement));
+                    return Err(ParseError::Statement(ParseStatementError::Let));
                 }
             };
             Ok(Statement::Let(LetStatement::new(
@@ -94,7 +94,7 @@ impl Parser {
             )))
         } else {
             self.peek_error(TokenType::Assign);
-            Err(ParseError::Statement(ParseStatementError::LetStatement))
+            Err(ParseError::Statement(ParseStatementError::Let))
         }
     }
 
@@ -103,7 +103,7 @@ impl Parser {
             Some(token) => token,
             None => {
                 self.errors.push(ParseError::NoneToken);
-                return Err(ParseError::Statement(ParseStatementError::ReturnStatement));
+                return Err(ParseError::Statement(ParseStatementError::Return));
             }
         };
 
@@ -112,7 +112,7 @@ impl Parser {
             Ok(expression) => expression,
             Err(e) => {
                 self.errors.push(e);
-                return Err(ParseError::Statement(ParseStatementError::ReturnStatement));
+                return Err(ParseError::Statement(ParseStatementError::Return));
             }
         };
 
@@ -124,9 +124,7 @@ impl Parser {
             Ok(expression) => expression,
             Err(e) => {
                 self.errors.push(e);
-                return Err(ParseError::Statement(
-                    ParseStatementError::ExpressionStatement,
-                ));
+                return Err(ParseError::Statement(ParseStatementError::Expression));
             }
         };
         let statement = ExpressionStatement::new(expression);
@@ -173,9 +171,7 @@ impl Parser {
                 Ok(left_expression) => left_expression,
                 Err(err) => {
                     self.errors.push(err);
-                    return Err(ParseError::Expression(
-                        ParseExpressionError::InfixExpression,
-                    ));
+                    return Err(ParseError::Expression(ParseExpressionError::Infix));
                 }
             };
         }
@@ -201,9 +197,7 @@ impl Parser {
                     Ok(right_expresion) => right_expresion,
                     Err(err) => {
                         self.errors.push(err);
-                        return Err(ParseError::Expression(
-                            ParseExpressionError::InfixExpression,
-                        ));
+                        return Err(ParseError::Expression(ParseExpressionError::Prefix));
                     }
                 };
                 Ok(Box::new(Expression::Prefix(PrefixExpression::new(
@@ -211,7 +205,8 @@ impl Parser {
                     right_expresion,
                 ))))
             }
-            _ => Err(ParseError::Expression(ParseExpressionError::NoPrefixParse(
+            TokenType::True | TokenType::False => Ok(Box::new(self.parse_boolean(token))),
+            _ => Err(ParseError::Expression(ParseExpressionError::NoPrefix(
                 std::mem::replace(&mut self.current_token, None),
             ))),
         }
@@ -227,9 +222,7 @@ impl Parser {
             Ok(right_expresion) => right_expresion,
             Err(err) => {
                 self.errors.push(err);
-                return Err(ParseError::Expression(
-                    ParseExpressionError::InfixExpression,
-                ));
+                return Err(ParseError::Expression(ParseExpressionError::Infix));
             }
         };
 
@@ -238,6 +231,11 @@ impl Parser {
             left_expression,
             right_expresion,
         ))))
+    }
+
+    fn parse_boolean(&mut self, token: Box<Token>) -> Expression {
+        let value = token.token_type == TokenType::True;
+        Expression::Boolean(Boolean::new(token, value))
     }
 }
 
@@ -698,6 +696,76 @@ mod tests {
                     string(&program)
                 );
             })
+    }
+
+    fn setup_boolean_expression_input() -> Vec<String> {
+        vec![
+            "true;",
+            "false;",
+            "let foobar = true;",
+            "let barfoo = false;",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect()
+    }
+
+    fn setup_boolean_expression_expect() -> Vec<bool> {
+        vec![true, false, true, false]
+    }
+
+    #[test]
+    fn test_boolean_expression() {
+        let inputs = setup_boolean_expression_input();
+        let expects = setup_boolean_expression_expect();
+
+        inputs
+            .into_iter()
+            .zip(expects.into_iter())
+            .enumerate()
+            .for_each(|(i, (input, expect))| {
+                let lexer = Lexer::new(input);
+                let mut parser = Parser::new(lexer);
+                let program = parser.parse_program();
+                check_parser_errors(&parser);
+
+                assert!(program.first().is_some(), "first is none");
+
+                match program.get(0).unwrap() {
+                    Statement::Let(statement) => {
+                        assert_boolean_expression(&statement.value, expect, i)
+                    }
+                    Statement::Expression(statement) => {
+                        assert_boolean_expression(&statement.expression, expect, i)
+                    }
+                    _ => panic!(
+                        "[{}] statement is not LetStatement or ExpressionStatement. got={}",
+                        i,
+                        program.get(0).unwrap()
+                    ),
+                }
+            });
+    }
+
+    fn assert_boolean_expression(expression: &Expression, expect: bool, i: usize) {
+        match expression {
+            Expression::Boolean(boolean) => {
+                assert_eq!(
+                    expect, boolean.value,
+                    "[{}] boolean value not {}. got={}",
+                    i, expect, boolean.value
+                );
+                assert_eq!(
+                    expect.to_string(),
+                    boolean.token_literal(),
+                    "[{}] literal token_literal not {}. got={}",
+                    i,
+                    expect.to_string(),
+                    boolean.token_literal()
+                );
+            }
+            _ => panic!("[{}] expression is not Boolean. got={}", i, expression),
+        }
     }
 
     fn check_parser_errors(parser: &Parser) {

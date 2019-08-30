@@ -11,15 +11,17 @@ pub(crate) enum ParseError {
 
 #[derive(Debug)]
 pub(crate) enum ParseStatementError {
-    LetStatement,
-    ReturnStatement,
-    ExpressionStatement,
+    Let,
+    Return,
+    Expression,
 }
 
 #[derive(Debug)]
 pub(crate) enum ParseExpressionError {
-    NoPrefixParse(Option<Box<Token>>),
-    InfixExpression,
+    NoPrefix(Option<Box<Token>>),
+    Prefix,
+    Infix,
+    Boolean,
 }
 
 impl std::error::Error for ParseError {}
@@ -45,11 +47,9 @@ impl std::error::Error for ParseStatementError {}
 impl std::fmt::Display for ParseStatementError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ParseStatementError::LetStatement => write!(f, "failed to parse LetStatement."),
-            ParseStatementError::ReturnStatement => write!(f, "failed to parse ReturnStatement."),
-            ParseStatementError::ExpressionStatement => {
-                write!(f, "failed to parse ExpressionStatement.")
-            }
+            ParseStatementError::Let => write!(f, "failed to parse LetStatement."),
+            ParseStatementError::Return => write!(f, "failed to parse ReturnStatement."),
+            ParseStatementError::Expression => write!(f, "failed to parse ExpressionStatement."),
         }
     }
 }
@@ -58,10 +58,12 @@ impl std::error::Error for ParseExpressionError {}
 impl std::fmt::Display for ParseExpressionError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ParseExpressionError::NoPrefixParse(Some(token)) => {
+            ParseExpressionError::NoPrefix(Some(token)) => {
                 write!(f, "no prefix parse for {}.", token.token_type)
             }
-            ParseExpressionError::InfixExpression => write!(f, "failed to parse infix expression."),
+            ParseExpressionError::Prefix => write!(f, "failed to parse prefix."),
+            ParseExpressionError::Infix => write!(f, "failed to parse infix expression."),
+            ParseExpressionError::Boolean => write!(f, "failed to parse boolean."),
             _ => write!(
                 f,
                 "occur something error that does not to be catched any patterns."
