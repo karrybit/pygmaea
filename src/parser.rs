@@ -551,14 +551,12 @@ mod tests {
                     Statement::Expression(statement) => statement,
                     _ => panic!("program statement is not ExpressionStatement."),
                 };
-                let expression: &Expression = statement.expression.as_ref();
-                let infix_expression = match expression {
-                    Expression::Infix(expression) => expression,
-                    _ => panic!("expression is not InfixExpression."),
-                };
-                assert_integer_literal(&infix_expression.right, expect.0);
-                assert_eq!(expect.1, infix_expression.operator);
-                assert_integer_literal(&infix_expression.right, expect.2);
+                assert_infix_expression(
+                    &statement.expression,
+                    Wrapped::int(expect.0),
+                    expect.1,
+                    Wrapped::int(expect.2),
+                );
             });
     }
 
@@ -579,6 +577,53 @@ mod tests {
                 );
             }
             _ => panic!("expression not IntegerLiteral. got={}", expression),
+        }
+    }
+
+    fn assert_identifier(expression: &Expression, value: String) {
+        match expression {
+            Expression::Identifier(identifier) => {
+                assert_eq!(
+                    identifier.value, value,
+                    "identifier.value not {}. got={}",
+                    value, identifier.value
+                );
+                assert_eq!(
+                    identifier.token_literal(),
+                    value,
+                    "identifier.token_literal() not {}. got={}",
+                    value,
+                    identifier.token_literal()
+                );
+            }
+            _ => panic!("expression not Identifier. got={}", expression),
+        }
+    }
+
+    fn assert_literal_expression(expression: &Expression, expected: Wrapped) {
+        match expected {
+            Wrapped::int(v) => assert_integer_literal(expression, v),
+            Wrapped::string(v) => assert_identifier(expression, v),
+        };
+    }
+
+    fn assert_infix_expression(
+        expression: &Expression,
+        left: Wrapped,
+        operator: String,
+        right: Wrapped,
+    ) {
+        match expression {
+            Expression::Infix(expression) => {
+                assert_literal_expression(&expression.left, left);
+                assert_eq!(
+                    expression.operator, operator,
+                    "expression.operator is not {}. got={}",
+                    operator, expression.operator
+                );
+                assert_literal_expression(&expression.right, right);
+            }
+            _ => panic!("expression is not InfixExpression. got={}", expression),
         }
     }
 
@@ -654,5 +699,10 @@ mod tests {
             .errors
             .iter()
             .for_each(|err| eprintln!("parser error: {}", err));
+    }
+
+    enum Wrapped {
+        int(i64),
+        string(String),
     }
 }
