@@ -267,13 +267,17 @@ mod tests {
     use crate::ast::*;
     use crate::lexer::Lexer;
 
-    fn setup_let_statement_input() -> String {
-        "
-        let x = 5;
-        let y = 10;
-        let foobar = 838383;
-        "
-        .to_string()
+    fn setup_let_statement_input() -> Vec<String> {
+        vec![
+            "
+        let x = 5;",
+            "let y = 10;",
+            "let foobar = 838383;
+        ",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
     }
 
     fn setup_let_statement_expects() -> Vec<String> {
@@ -285,53 +289,57 @@ mod tests {
 
     #[test]
     fn test_let_statement() {
-        let input = setup_let_statement_input();
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        check_parser_errors(&parser);
-
-        assert_eq!(
-            3,
-            program.len(),
-            "program does not contains 3 statements. got={}",
-            program.len()
-        );
-
-        setup_let_statement_expects()
+        let inputs = setup_let_statement_input();
+        let expects = setup_let_statement_expects();
+        inputs
             .into_iter()
-            .zip(program.iter())
-            .for_each(|(expect, statement)| {
-                assert_let_statement(statement, expect);
+            .zip(expects.into_iter())
+            .enumerate()
+            .for_each(|(i, (input, expect))| {
+                let lexer = Lexer::new(input);
+                let mut parser = Parser::new(lexer);
+                let program = parser.parse_program();
+                check_parser_errors(&parser, i);
+
+                assert_eq!(
+                    1,
+                    program.len(),
+                    "[{}] program does not contains 1 statements. got={}",
+                    i,
+                    program.len()
+                );
+                assert_let_statement(program.get(0).unwrap(), expect, i);
             });
     }
 
-    fn assert_let_statement(statement: &Statement, expect_name: String) {
+    fn assert_let_statement(statement: &Statement, expect_name: String, i: usize) {
         match statement {
             Statement::Let(ref statement) => {
                 assert_eq!(
                     "let".to_string(),
                     statement.token_literal(),
-                    "statement.token_literal not 'let'. got={}",
+                    "[{}] statement.token_literal not 'let'. got={}",
+                    i,
                     statement.token_literal()
                 );
                 assert_eq!(
                     expect_name, statement.name.value,
-                    "let_statement.name.value not '{}'. got={}",
-                    expect_name, statement.name.value
+                    "[{}] let_statement.name.value not '{}'. got={}",
+                    i, expect_name, statement.name.value
                 );
                 assert_eq!(
                     expect_name,
                     statement.name.token_literal(),
-                    "let_statement.name.token_literal not '{}'. got={}",
+                    "[{}] let_statement.name.token_literal not '{}'. got={}",
+                    i,
                     expect_name,
                     statement.name.token_literal()
                 );
             }
-            other_statement => panic!(format!(
-                "statement not ReturnStatement. got={}",
-                other_statement
-            )),
+            other_statement => panic!(
+                "[{}] statement not ReturnStatement. got={}",
+                i, other_statement
+            ),
         };
     }
 
@@ -346,122 +354,136 @@ mod tests {
 
     #[test]
     fn test_return_statement() {
-        let input = setup_return_statement_input();
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        let inputs = vec![setup_return_statement_input()];
+        inputs.into_iter().enumerate().for_each(|(i, input)| {
+            let lexer = Lexer::new(input);
+            let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
-        check_parser_errors(&parser);
+            let program = parser.parse_program();
+            check_parser_errors(&parser, i);
 
-        assert_eq!(
-            3,
-            program.len(),
-            "program does not contain 3 statements. got={}",
-            program.len()
-        );
+            assert_eq!(
+                3,
+                program.len(),
+                "[{}] program does not contain 3 statements. got={}",
+                i,
+                program.len()
+            );
 
-        program.iter().for_each(|statement| match statement {
-            Statement::Return(statement) => assert_eq!(
-                "return",
-                statement.token_literal(),
-                "statement.token_literal not 'return'. got={}",
-                statement.token_literal()
-            ),
-            other_statement => panic!(format!(
-                "statement not ReturnStatement. got={}",
-                other_statement
-            )),
-        })
+            program.iter().for_each(|statement| match statement {
+                Statement::Return(statement) => assert_eq!(
+                    "return",
+                    statement.token_literal(),
+                    "[{}] statement.token_literal not 'return'. got={}",
+                    i,
+                    statement.token_literal()
+                ),
+                other_statement => panic!(
+                    "[{}] statement not ReturnStatement. got={}",
+                    i, other_statement
+                ),
+            })
+        });
     }
 
     #[test]
     fn test_identifier_expression() {
-        let input = "foobar;".to_string();
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
+        let inputs = vec!["foobar;".to_string()];
+        inputs.into_iter().enumerate().for_each(|(i, input)| {
+            let lexer = Lexer::new(input);
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
 
-        check_parser_errors(&parser);
+            check_parser_errors(&parser, i);
 
-        assert_eq!(
-            1,
-            program.len(),
-            "program has not enough etatements. got={}",
-            program.len()
-        );
-
-        if let Statement::Expression(statement) = program.get(0).unwrap() {
-            let expression: &Expression = statement.expression.as_ref();
-            match expression {
-                Expression::Identifier(identifier) => {
-                    assert_eq!(
-                        "foobar", identifier.value,
-                        "identifier value not {}. got={}",
-                        "foobar", identifier.value
-                    );
-                    assert_eq!(
-                        "foobar",
-                        identifier.token_literal(),
-                        "identifier token_literal() not {}. got={}",
-                        "foobar",
-                        identifier.token_literal()
-                    );
-                }
-                _ => {
-                    panic!("expression not Identifier. got={}", expression);
-                }
-            }
-        } else {
-            panic!(
-                "program statement is not ExpressionStatement. got={}",
-                program.get(0).unwrap()
+            assert_eq!(
+                1,
+                program.len(),
+                "[{}] program has not enough etatements. got={}",
+                i,
+                program.len()
             );
-        }
+
+            if let Statement::Expression(statement) = program.get(0).unwrap() {
+                let expression: &Expression = statement.expression.as_ref();
+                match expression {
+                    Expression::Identifier(identifier) => {
+                        assert_eq!(
+                            "foobar", identifier.value,
+                            "[{}] identifier value not {}. got={}",
+                            i, "foobar", identifier.value
+                        );
+                        assert_eq!(
+                            "foobar",
+                            identifier.token_literal(),
+                            "[{}] identifier token_literal() not {}. got={}",
+                            i,
+                            "foobar",
+                            identifier.token_literal()
+                        );
+                    }
+                    _ => {
+                        panic!("[{}] expression not Identifier. got={}", i, expression);
+                    }
+                }
+            } else {
+                panic!(
+                    "[{}] program statement is not ExpressionStatement. got={}",
+                    i,
+                    program.get(0).unwrap()
+                );
+            }
+        });
     }
 
     #[test]
     fn test_integer_literal_expression() {
-        let input = "5;".to_string();
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        check_parser_errors(&parser);
+        let inputs = vec!["5;".to_string()];
+        inputs.into_iter().enumerate().for_each(|(i, input)| {
+            let lexer = Lexer::new(input);
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            check_parser_errors(&parser, i);
 
-        assert_eq!(
-            1,
-            program.len(),
-            "program has not enough statements. got={}",
-            program.len()
-        );
-
-        if let Statement::Expression(statement) = program.get(0).unwrap() {
-            let expression: &Expression = statement.expression.as_ref();
-            match expression {
-                Expression::Integer(literal) => {
-                    assert_eq!(
-                        5, literal.value,
-                        "literal value not 5. got={}",
-                        literal.value
-                    );
-                    assert_eq!(
-                        "5".to_string(),
-                        literal.token_literal(),
-                        "literal token_literal not '5'. got={}",
-                        literal.token_literal()
-                    );
-                }
-                _ => panic!("expression not IntegerLiteral. got={}", expression),
-            }
-        } else {
-            panic!(
-                "program statements is not ExpressionStatement. got={}",
-                program.get(0).unwrap()
+            assert_eq!(
+                1,
+                program.len(),
+                "[{}] program has not enough statements. got={}",
+                i,
+                program.len()
             );
-        }
+
+            if let Statement::Expression(statement) = program.get(0).unwrap() {
+                let expression: &Expression = statement.expression.as_ref();
+                match expression {
+                    Expression::Integer(literal) => {
+                        assert_eq!(
+                            5, literal.value,
+                            "[{}] literal value not 5. got={}",
+                            i, literal.value
+                        );
+                        assert_eq!(
+                            "5".to_string(),
+                            literal.token_literal(),
+                            "[{}] literal token_literal not '5'. got={}",
+                            i,
+                            literal.token_literal()
+                        );
+                    }
+                    _ => panic!("[{}] expression not IntegerLiteral. got={}", i, expression),
+                }
+            } else {
+                panic!(
+                    "[{}] program statements is not ExpressionStatement. got={}",
+                    i,
+                    program.get(0).unwrap()
+                );
+            }
+        });
     }
 
     fn setup_parsing_prefix_expression_input() -> Vec<String> {
-        vec!["!5", "-15"].into_iter().map(String::from).collect()
+        vec!["!5", "-15"].into_iter().map(str::to_string).collect()
     }
 
     fn setup_parsing_prefix_expression_expect() -> Vec<(String, i64)> {
@@ -478,16 +500,18 @@ mod tests {
         inputs
             .into_iter()
             .zip(expects.into_iter())
-            .for_each(|(input, expect)| {
+            .enumerate()
+            .for_each(|(i, (input, expect))| {
                 let lexer = Lexer::new(input);
                 let mut parser = Parser::new(lexer);
                 let program = parser.parse_program();
-                check_parser_errors(&parser);
+                check_parser_errors(&parser, i);
 
                 assert_eq!(
                     1,
                     program.len(),
-                    "program statements does not contain 1 statements. got={}",
+                    "[{}] program statements does not contain 1 statements. got={}",
+                    i,
                     program.len()
                 );
 
@@ -497,16 +521,20 @@ mod tests {
                         Expression::Prefix(prefix) => {
                             assert_eq!(
                                 expect.0, prefix.operator,
-                                "expression operator is not {}. got={}",
-                                expect.0, prefix.operator
+                                "[{}] expression operator is not {}. got={}",
+                                i, expect.0, prefix.operator
                             );
-                            assert_integer_literal(&prefix.right, expect.1);
+                            assert_integer_literal(&prefix.right, expect.1, i);
                         }
-                        _ => panic!("expression is not PrefixExpression. got={}", expression),
+                        _ => panic!(
+                            "[{}] expression is not PrefixExpression. got={}",
+                            i, expression
+                        ),
                     }
                 } else {
                     panic!(
-                        "program statements is not ExpressionStatement. got={}",
+                        "[{}] program statements is not ExpressionStatement. got={}",
+                        i,
                         program.get(0).unwrap()
                     );
                 }
@@ -518,7 +546,7 @@ mod tests {
             "5 + 5;", "5 - 5;", "5 * 5;", "5 / 5;", "5 > 5;", "5 < 5;", "5 == 5;", "5 != 5;",
         ]
         .into_iter()
-        .map(String::from)
+        .map(str::to_string)
         .collect()
     }
 
@@ -546,73 +574,80 @@ mod tests {
         inputs
             .into_iter()
             .zip(expects.into_iter())
-            .for_each(|(input, expect)| {
+            .enumerate()
+            .for_each(|(i, (input, expect))| {
                 let mut parser = Parser::new(Lexer::new(input));
                 let program = parser.parse_program();
+
+                check_parser_errors(&parser, i);
 
                 assert_eq!(
                     1,
                     program.len(),
-                    "program statements does not contain 1 statements. got={}",
+                    "[{}] program statements does not contain 1 statements. got={}",
+                    i,
                     program.len()
                 );
                 let statement = match program.get(0).unwrap() {
                     Statement::Expression(statement) => statement,
-                    _ => panic!("program statement is not ExpressionStatement."),
+                    _ => panic!("[{}] program statement is not ExpressionStatement.", i),
                 };
                 assert_infix_expression(
                     &statement.expression,
                     Wrapped::int(expect.0),
                     expect.1,
                     Wrapped::int(expect.2),
+                    i,
                 );
             });
     }
 
-    fn assert_integer_literal(expression: &Expression, value: i64) {
+    fn assert_integer_literal(expression: &Expression, value: i64, i: usize) {
         match expression {
             Expression::Integer(literal) => {
                 assert_eq!(
                     value, literal.value,
-                    "literal value not {}. got={}",
-                    value, literal.value
+                    "[{}] literal value not {}. got={}",
+                    i, value, literal.value
                 );
                 assert_eq!(
                     value.to_string(),
                     literal.token_literal(),
-                    "literal token_literal not {}. got={}",
+                    "[{}] literal token_literal not {}. got={}",
+                    i,
                     value.to_string(),
                     literal.token_literal()
                 );
             }
-            _ => panic!("expression not IntegerLiteral. got={}", expression),
+            _ => panic!("[{}] expression not IntegerLiteral. got={}", i, expression),
         }
     }
 
-    fn assert_identifier(expression: &Expression, value: String) {
+    fn assert_identifier(expression: &Expression, value: String, i: usize) {
         match expression {
             Expression::Identifier(identifier) => {
                 assert_eq!(
                     identifier.value, value,
-                    "identifier.value not {}. got={}",
-                    value, identifier.value
+                    "[{}] identifier.value not {}. got={}",
+                    i, value, identifier.value
                 );
                 assert_eq!(
                     identifier.token_literal(),
                     value,
-                    "identifier.token_literal() not {}. got={}",
+                    "[{}] identifier.token_literal() not {}. got={}",
+                    i,
                     value,
                     identifier.token_literal()
                 );
             }
-            _ => panic!("expression not Identifier. got={}", expression),
+            _ => panic!("[{}] expression not Identifier. got={}", i, expression),
         }
     }
 
-    fn assert_literal_expression(expression: &Expression, expected: Wrapped) {
+    fn assert_literal_expression(expression: &Expression, expected: Wrapped, i: usize) {
         match expected {
-            Wrapped::int(v) => assert_integer_literal(expression, v),
-            Wrapped::string(v) => assert_identifier(expression, v),
+            Wrapped::int(v) => assert_integer_literal(expression, v, i),
+            Wrapped::string(v) => assert_identifier(expression, v, i),
         };
     }
 
@@ -621,18 +656,22 @@ mod tests {
         left: Wrapped,
         operator: String,
         right: Wrapped,
+        i: usize,
     ) {
         match expression {
             Expression::Infix(expression) => {
-                assert_literal_expression(&expression.left, left);
+                assert_literal_expression(&expression.left, left, i);
                 assert_eq!(
                     expression.operator, operator,
-                    "expression.operator is not {}. got={}",
-                    operator, expression.operator
+                    "[{}] expression.operator is not {}. got={}",
+                    i, operator, expression.operator
                 );
-                assert_literal_expression(&expression.right, right);
+                assert_literal_expression(&expression.right, right, i);
             }
-            _ => panic!("expression is not InfixExpression. got={}", expression),
+            _ => panic!(
+                "[{}] expression is not InfixExpression. got={}",
+                i, expression
+            ),
         }
     }
 
@@ -650,9 +689,13 @@ mod tests {
             "5 > 4 == 3 < 4",
             "5 < 4 != 3 > 4",
             "3 + 4 * 5 == 3 * 1 + 4 * 5",
+            "true",
+            "false",
+            "3 > 5 == false",
+            "3 < 5 == true",
         ]
         .into_iter()
-        .map(String::from)
+        .map(str::to_string)
         .collect()
     }
 
@@ -670,9 +713,13 @@ mod tests {
             "((5 > 4) == (3 < 4))",
             "((5 < 4) != (3 > 4))",
             "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+            "true",
+            "false",
+            "((3 > 5) == false)",
+            "((3 < 5) == true)",
         ]
         .into_iter()
-        .map(String::from)
+        .map(str::to_string)
         .collect()
     }
 
@@ -680,18 +727,25 @@ mod tests {
     fn test_operator_precedence_parsing() {
         let inputs = setup_operator_precedence_parsing_input();
         let expects = setup_operator_precedence_parsing_expect();
+        assert_eq!(
+            inputs.len(),
+            expects.len(),
+            "inputs.len and expects.len is mismatch"
+        );
         inputs
             .into_iter()
             .zip(expects.into_iter())
-            .for_each(|(input, expect)| {
+            .enumerate()
+            .for_each(|(i, (input, expect))| {
                 let mut parser = Parser::new(Lexer::new(input));
                 let program = parser.parse_program();
-                check_parser_errors(&parser);
-                assert!(program.first().is_some(), "first is none");
+                check_parser_errors(&parser, i);
+                assert!(program.first().is_some(), "[{}] first is none", i);
                 assert_eq!(
                     expect,
                     string(&program),
-                    "expected={}, got={}",
+                    "[{}] expected={}, got={}",
+                    i,
                     expect,
                     string(&program)
                 );
@@ -706,7 +760,7 @@ mod tests {
             "let barfoo = false;",
         ]
         .into_iter()
-        .map(String::from)
+        .map(str::to_string)
         .collect()
     }
 
@@ -727,7 +781,7 @@ mod tests {
                 let lexer = Lexer::new(input);
                 let mut parser = Parser::new(lexer);
                 let program = parser.parse_program();
-                check_parser_errors(&parser);
+                check_parser_errors(&parser, i);
 
                 assert!(program.first().is_some(), "first is none");
 
@@ -768,16 +822,17 @@ mod tests {
         }
     }
 
-    fn check_parser_errors(parser: &Parser) {
+    fn check_parser_errors(parser: &Parser, i: usize) {
         if parser.errors.is_empty() {
             return;
         }
 
-        eprintln!("parser has {} errors", parser.errors.len());
+        eprintln!("[{}] parser has {} errors", i, parser.errors.len());
         parser
             .errors
             .iter()
-            .for_each(|err| eprintln!("parser error: {}", err));
+            .enumerate()
+            .for_each(|(i, err)| eprintln!("[{}] parser error: {}", i, err));
     }
 
     enum Wrapped {
