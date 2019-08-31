@@ -752,10 +752,6 @@ mod tests {
             });
     }
 
-    fn assert_literal_expression(wrapped: impl Wrapped, expression: &Expression, i: usize) {
-        wrapped.assert_literal_expression(expression, i);
-    }
-
     fn assert_integer_literal(expression: &Expression, value: i64, i: usize) {
         match expression {
             Expression::Integer(literal) => {
