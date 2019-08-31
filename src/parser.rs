@@ -543,23 +543,36 @@ mod tests {
 
     fn setup_parsing_infix_expression_input() -> Vec<String> {
         vec![
-            "5 + 5;", "5 - 5;", "5 * 5;", "5 / 5;", "5 > 5;", "5 < 5;", "5 == 5;", "5 != 5;",
+            "5 + 5;",
+            "5 - 5;",
+            "5 * 5;",
+            "5 / 5;",
+            "5 > 5;",
+            "5 < 5;",
+            "5 == 5;",
+            "5 != 5;",
+            "true == true",
+            "true != false",
+            "false == false",
         ]
         .into_iter()
         .map(str::to_string)
         .collect()
     }
 
-    fn setup_parsing_infix_expression_expect() -> Vec<(i64, String, i64)> {
+    fn setup_parsing_infix_expression_expect() -> Vec<(Concrete, String, Concrete)> {
         vec![
-            (5, "+", 5),
-            (5, "-", 5),
-            (5, "*", 5),
-            (5, "/", 5),
-            (5, ">", 5),
-            (5, "<", 5),
-            (5, "==", 5),
-            (5, "!=", 5),
+            (Concrete::Integer(5), "+", Concrete::Integer(5)),
+            (Concrete::Integer(5), "-", Concrete::Integer(5)),
+            (Concrete::Integer(5), "*", Concrete::Integer(5)),
+            (Concrete::Integer(5), "/", Concrete::Integer(5)),
+            (Concrete::Integer(5), ">", Concrete::Integer(5)),
+            (Concrete::Integer(5), "<", Concrete::Integer(5)),
+            (Concrete::Integer(5), "==", Concrete::Integer(5)),
+            (Concrete::Integer(5), "!=", Concrete::Integer(5)),
+            (Concrete::Boolean(true), "==", Concrete::Boolean(true)),
+            (Concrete::Boolean(true), "!=", Concrete::Boolean(false)),
+            (Concrete::Boolean(false), "==", Concrete::Boolean(false)),
         ]
         .into_iter()
         .map(|(left, op, right)| (left, op.to_string(), right))
@@ -570,6 +583,12 @@ mod tests {
     fn test_parsing_infix_expression() {
         let inputs = setup_parsing_infix_expression_input();
         let expects = setup_parsing_infix_expression_expect();
+
+        assert_eq!(
+            inputs.len(),
+            expects.len(),
+            "inputs.len and expects.len is mismatch"
+        );
 
         inputs
             .into_iter()
@@ -592,13 +611,7 @@ mod tests {
                     Statement::Expression(statement) => statement,
                     _ => panic!("[{}] program statement is not ExpressionStatement.", i),
                 };
-                assert_infix_expression(
-                    &statement.expression,
-                    Concrete(expect.0),
-                    expect.1,
-                    Concrete(expect.2),
-                    i,
-                );
+                assert_infix_expression(&statement.expression, expect.0, expect.1, expect.2, i);
             });
     }
 
@@ -752,6 +765,27 @@ mod tests {
             });
     }
 
+    fn assert_boolean_expression(expression: &Expression, expect: bool, i: usize) {
+        match expression {
+            Expression::Boolean(boolean) => {
+                assert_eq!(
+                    expect, boolean.value,
+                    "[{}] boolean value not {}. got={}",
+                    i, expect, boolean.value
+                );
+                assert_eq!(
+                    expect.to_string(),
+                    boolean.token_literal(),
+                    "[{}] literal token_literal not {}. got={}",
+                    i,
+                    expect.to_string(),
+                    boolean.token_literal()
+                );
+            }
+            _ => panic!("[{}] expression is not Boolean. got={}", i, expression),
+        }
+    }
+
     fn assert_integer_literal(expression: &Expression, value: i64, i: usize) {
         match expression {
             Expression::Integer(literal) => {
@@ -794,24 +828,24 @@ mod tests {
         }
     }
 
-    fn assert_boolean_expression(expression: &Expression, expect: bool, i: usize) {
+    fn assert_boolean_literal(expression: &Expression, value: bool, i: usize) {
         match expression {
-            Expression::Boolean(boolean) => {
+            Expression::Boolean(expression) => {
                 assert_eq!(
-                    expect, boolean.value,
-                    "[{}] boolean value not {}. got={}",
-                    i, expect, boolean.value
+                    value, expression.value,
+                    "[{}] expression.value not {}. got={}",
+                    i, value, expression.value
                 );
                 assert_eq!(
-                    expect.to_string(),
-                    boolean.token_literal(),
-                    "[{}] literal token_literal not {}. got={}",
+                    value.to_string(),
+                    expression.token_literal(),
+                    "[{}] expression.token_literal() not {}. got={}",
                     i,
-                    expect.to_string(),
-                    boolean.token_literal()
+                    value.to_string(),
+                    expression.token_literal()
                 );
             }
-            _ => panic!("[{}] expression is not Boolean. got={}", i, expression),
+            _ => panic!("[{}] expression not boolean. got={}", i, expression),
         }
     }
 
@@ -831,20 +865,20 @@ mod tests {
     trait Wrapped {
         fn assert_literal_expression(self, expression: &Expression, i: usize);
     }
-    struct Concrete<T>(T);
-    impl Wrapped for Concrete<i64> {
-        fn assert_literal_expression(self, expression: &Expression, i: usize) {
-            assert_integer_literal(expression, self.0, i);
-        }
+
+    enum Concrete {
+        Integer(i64),
+        String(String),
+        Boolean(bool),
     }
-    impl Wrapped for Concrete<String> {
+
+    impl Wrapped for Concrete {
         fn assert_literal_expression(self, expression: &Expression, i: usize) {
-            assert_identifier(expression, self.0, i);
-        }
-    }
-    impl Wrapped for Concrete<bool> {
-        fn assert_literal_expression(self, expression: &Expression, i: usize) {
-            assert_boolean_expression(expression, self.0, i);
+            match self {
+                Concrete::Integer(v) => assert_integer_literal(expression, v, i),
+                Concrete::String(v) => assert_identifier(expression, v, i),
+                Concrete::Boolean(v) => assert_boolean_literal(expression, v, i),
+            }
         }
     }
 }
