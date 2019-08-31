@@ -594,79 +594,30 @@ mod tests {
                 };
                 assert_infix_expression(
                     &statement.expression,
-                    Wrapped::int(expect.0),
+                    Concrete(expect.0),
                     expect.1,
-                    Wrapped::int(expect.2),
+                    Concrete(expect.2),
                     i,
                 );
             });
     }
 
-    fn assert_integer_literal(expression: &Expression, value: i64, i: usize) {
-        match expression {
-            Expression::Integer(literal) => {
-                assert_eq!(
-                    value, literal.value,
-                    "[{}] literal value not {}. got={}",
-                    i, value, literal.value
-                );
-                assert_eq!(
-                    value.to_string(),
-                    literal.token_literal(),
-                    "[{}] literal token_literal not {}. got={}",
-                    i,
-                    value.to_string(),
-                    literal.token_literal()
-                );
-            }
-            _ => panic!("[{}] expression not IntegerLiteral. got={}", i, expression),
-        }
-    }
-
-    fn assert_identifier(expression: &Expression, value: String, i: usize) {
-        match expression {
-            Expression::Identifier(identifier) => {
-                assert_eq!(
-                    identifier.value, value,
-                    "[{}] identifier.value not {}. got={}",
-                    i, value, identifier.value
-                );
-                assert_eq!(
-                    identifier.token_literal(),
-                    value,
-                    "[{}] identifier.token_literal() not {}. got={}",
-                    i,
-                    value,
-                    identifier.token_literal()
-                );
-            }
-            _ => panic!("[{}] expression not Identifier. got={}", i, expression),
-        }
-    }
-
-    fn assert_literal_expression(expression: &Expression, expected: Wrapped, i: usize) {
-        match expected {
-            Wrapped::int(v) => assert_integer_literal(expression, v, i),
-            Wrapped::string(v) => assert_identifier(expression, v, i),
-        };
-    }
-
     fn assert_infix_expression(
         expression: &Expression,
-        left: Wrapped,
+        left: impl Wrapped,
         operator: String,
-        right: Wrapped,
+        right: impl Wrapped,
         i: usize,
     ) {
         match expression {
             Expression::Infix(expression) => {
-                assert_literal_expression(&expression.left, left, i);
+                left.assert_literal_expression(&expression.left, i);
                 assert_eq!(
                     expression.operator, operator,
                     "[{}] expression.operator is not {}. got={}",
                     i, operator, expression.operator
                 );
-                assert_literal_expression(&expression.right, right, i);
+                right.assert_literal_expression(&expression.right, i);
             }
             _ => panic!(
                 "[{}] expression is not InfixExpression. got={}",
@@ -801,6 +752,52 @@ mod tests {
             });
     }
 
+    fn assert_literal_expression(wrapped: impl Wrapped, expression: &Expression, i: usize) {
+        wrapped.assert_literal_expression(expression, i);
+    }
+
+    fn assert_integer_literal(expression: &Expression, value: i64, i: usize) {
+        match expression {
+            Expression::Integer(literal) => {
+                assert_eq!(
+                    value, literal.value,
+                    "[{}] literal value not {}. got={}",
+                    i, value, literal.value
+                );
+                assert_eq!(
+                    value.to_string(),
+                    literal.token_literal(),
+                    "[{}] literal token_literal not {}. got={}",
+                    i,
+                    value.to_string(),
+                    literal.token_literal()
+                );
+            }
+            _ => panic!("[{}] expression not IntegerLiteral. got={}", i, expression),
+        }
+    }
+
+    fn assert_identifier(expression: &Expression, value: String, i: usize) {
+        match expression {
+            Expression::Identifier(identifier) => {
+                assert_eq!(
+                    identifier.value, value,
+                    "[{}] identifier.value not {}. got={}",
+                    i, value, identifier.value
+                );
+                assert_eq!(
+                    identifier.token_literal(),
+                    value,
+                    "[{}] identifier.token_literal() not {}. got={}",
+                    i,
+                    value,
+                    identifier.token_literal()
+                );
+            }
+            _ => panic!("[{}] expression not Identifier. got={}", i, expression),
+        }
+    }
+
     fn assert_boolean_expression(expression: &Expression, expect: bool, i: usize) {
         match expression {
             Expression::Boolean(boolean) => {
@@ -835,8 +832,23 @@ mod tests {
             .for_each(|(i, err)| eprintln!("[{}] parser error: {}", i, err));
     }
 
-    enum Wrapped {
-        int(i64),
-        string(String),
+    trait Wrapped {
+        fn assert_literal_expression(self, expression: &Expression, i: usize);
+    }
+    struct Concrete<T>(T);
+    impl Wrapped for Concrete<i64> {
+        fn assert_literal_expression(self, expression: &Expression, i: usize) {
+            assert_integer_literal(expression, self.0, i);
+        }
+    }
+    impl Wrapped for Concrete<String> {
+        fn assert_literal_expression(self, expression: &Expression, i: usize) {
+            assert_identifier(expression, self.0, i);
+        }
+    }
+    impl Wrapped for Concrete<bool> {
+        fn assert_literal_expression(self, expression: &Expression, i: usize) {
+            assert_boolean_expression(expression, self.0, i);
+        }
     }
 }
