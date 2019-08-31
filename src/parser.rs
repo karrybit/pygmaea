@@ -483,14 +483,22 @@ mod tests {
     }
 
     fn setup_parsing_prefix_expression_input() -> Vec<String> {
-        vec!["!5", "-15"].into_iter().map(str::to_string).collect()
+        vec!["!5", "-15", "!true", "!false"]
+            .into_iter()
+            .map(str::to_string)
+            .collect()
     }
 
-    fn setup_parsing_prefix_expression_expect() -> Vec<(String, i64)> {
-        vec![("!", 5), ("-", 15)]
-            .into_iter()
-            .map(|(prefix, value)| (prefix.to_string(), value))
-            .collect()
+    fn setup_parsing_prefix_expression_expect() -> Vec<(String, Concrete)> {
+        vec![
+            ("!", Concrete::Integer(5)),
+            ("-", Concrete::Integer(15)),
+            ("!", Concrete::Boolean(true)),
+            ("!", Concrete::Boolean(false)),
+        ]
+        .into_iter()
+        .map(|(prefix, value)| (prefix.to_string(), value))
+        .collect()
     }
 
     #[test]
@@ -524,7 +532,7 @@ mod tests {
                                 "[{}] expression operator is not {}. got={}",
                                 i, expect.0, prefix.operator
                             );
-                            assert_integer_literal(&prefix.right, expect.1, i);
+                            expect.1.assert_literal_expression(&prefix.right, i);
                         }
                         _ => panic!(
                             "[{}] expression is not PrefixExpression. got={}",
