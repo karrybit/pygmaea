@@ -454,9 +454,8 @@ mod tests {
             );
 
             if let Statement::Expression(statement) = program.get(0).unwrap() {
-                let expression: &Expression = statement.expression.as_ref();
-                match expression {
-                    Expression::Integer(literal) => {
+                match *statement.expression {
+                    Expression::Integer(ref literal) => {
                         assert_eq!(
                             5, literal.value,
                             "[{}] literal value not 5. got={}",
@@ -470,7 +469,10 @@ mod tests {
                             literal.token_literal()
                         );
                     }
-                    _ => panic!("[{}] expression not IntegerLiteral. got={}", i, expression),
+                    _ => panic!(
+                        "[{}] expression not IntegerLiteral. got={}",
+                        i, statement.expression
+                    ),
                 }
             } else {
                 panic!(
@@ -524,9 +526,8 @@ mod tests {
                 );
 
                 if let Statement::Expression(statement) = program.get(0).unwrap() {
-                    let expression: &Expression = statement.expression.as_ref();
-                    match expression {
-                        Expression::Prefix(prefix) => {
+                    match *statement.expression {
+                        Expression::Prefix(ref prefix) => {
                             assert_eq!(
                                 expect.0, prefix.operator,
                                 "[{}] expression operator is not {}. got={}",
@@ -536,7 +537,7 @@ mod tests {
                         }
                         _ => panic!(
                             "[{}] expression is not PrefixExpression. got={}",
-                            i, expression
+                            i, statement.expression
                         ),
                     }
                 } else {
