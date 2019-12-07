@@ -1,10 +1,10 @@
-use crate::lexer::Lexer;
+use pygmaea::lexer::Lexer;
 use std::io::Write;
 
 const PROMPT: &str = ">>";
 const EXIT_COMMAND: [&str; 3] = [":exit", ":quit", ":q"];
 
-pub(crate) fn start() {
+pub fn start() {
     loop {
         let mut command = String::new();
         print!("{} ", PROMPT);

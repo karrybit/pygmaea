@@ -1,11 +1,11 @@
 use crate::token::Token;
 
-pub(crate) trait Node {
+pub trait Node {
     fn token_literal(&self) -> String;
 }
 
 #[derive(Debug)]
-pub(crate) enum Statement {
+pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
     Expression(ExpressionStatement),
@@ -32,14 +32,14 @@ impl std::fmt::Display for Statement {
 }
 
 #[derive(Debug)]
-pub(crate) struct LetStatement {
-    pub(crate) token: Box<Token>,
-    pub(crate) name: Identifier,
-    pub(crate) value: Box<Expression>,
+pub struct LetStatement {
+    pub token: Box<Token>,
+    pub name: Identifier,
+    pub value: Box<Expression>,
 }
 
 impl LetStatement {
-    pub(crate) fn new(token: Box<Token>, name: Identifier, value: Box<Expression>) -> Self {
+    pub fn new(token: Box<Token>, name: Identifier, value: Box<Expression>) -> Self {
         Self { token, name, value }
     }
 }
@@ -63,13 +63,13 @@ impl std::fmt::Display for LetStatement {
 }
 
 #[derive(Debug)]
-pub(crate) struct ReturnStatement {
-    pub(crate) token: Box<Token>,
-    pub(crate) return_value: Box<Expression>,
+pub struct ReturnStatement {
+    pub token: Box<Token>,
+    pub return_value: Box<Expression>,
 }
 
 impl ReturnStatement {
-    pub(crate) fn new(token: Box<Token>, return_value: Box<Expression>) -> Self {
+    pub fn new(token: Box<Token>, return_value: Box<Expression>) -> Self {
         Self {
             token,
             return_value,
@@ -90,12 +90,12 @@ impl std::fmt::Display for ReturnStatement {
 }
 
 #[derive(Debug)]
-pub(crate) struct ExpressionStatement {
-    pub(crate) expression: Box<Expression>,
+pub struct ExpressionStatement {
+    pub expression: Box<Expression>,
 }
 
 impl ExpressionStatement {
-    pub(crate) fn new(expression: Box<Expression>) -> Self {
+    pub fn new(expression: Box<Expression>) -> Self {
         Self { expression }
     }
 }
@@ -113,7 +113,7 @@ impl std::fmt::Display for ExpressionStatement {
 }
 
 #[derive(Debug)]
-pub(crate) enum Expression {
+pub enum Expression {
     Identifier(Identifier),
     Integer(IntegerLiteral),
     Prefix(PrefixExpression),
@@ -146,13 +146,13 @@ impl std::fmt::Display for Expression {
 }
 
 #[derive(Debug)]
-pub(crate) struct Identifier {
-    pub(crate) token: Box<Token>,
-    pub(crate) value: String,
+pub struct Identifier {
+    pub token: Box<Token>,
+    pub value: String,
 }
 
 impl Identifier {
-    pub(crate) fn new(token: Box<Token>) -> Self {
+    pub fn new(token: Box<Token>) -> Self {
         let value = token.literal.clone();
         Self { token, value }
     }
@@ -171,13 +171,13 @@ impl std::fmt::Display for Identifier {
 }
 
 #[derive(Debug)]
-pub(crate) struct IntegerLiteral {
-    pub(crate) token: Box<Token>,
-    pub(crate) value: i64,
+pub struct IntegerLiteral {
+    pub token: Box<Token>,
+    pub value: i64,
 }
 
 impl IntegerLiteral {
-    pub(crate) fn new(token: Box<Token>) -> Self {
+    pub fn new(token: Box<Token>) -> Self {
         let value = token
             .literal
             .parse::<i64>()
@@ -199,14 +199,14 @@ impl std::fmt::Display for IntegerLiteral {
 }
 
 #[derive(Debug)]
-pub(crate) struct PrefixExpression {
-    pub(crate) token: Box<Token>,
-    pub(crate) operator: String,
-    pub(crate) right: Box<Expression>,
+pub struct PrefixExpression {
+    pub token: Box<Token>,
+    pub operator: String,
+    pub right: Box<Expression>,
 }
 
 impl PrefixExpression {
-    pub(crate) fn new(token: Box<Token>, right: Box<Expression>) -> Self {
+    pub fn new(token: Box<Token>, right: Box<Expression>) -> Self {
         let operator = token.literal.clone();
         Self {
             token,
@@ -229,15 +229,15 @@ impl std::fmt::Display for PrefixExpression {
 }
 
 #[derive(Debug)]
-pub(crate) struct InfixExpression {
-    pub(crate) token: Box<Token>,
-    pub(crate) left: Box<Expression>,
-    pub(crate) operator: String,
-    pub(crate) right: Box<Expression>,
+pub struct InfixExpression {
+    pub token: Box<Token>,
+    pub left: Box<Expression>,
+    pub operator: String,
+    pub right: Box<Expression>,
 }
 
 impl InfixExpression {
-    pub(crate) fn new(token: Box<Token>, left: Box<Expression>, right: Box<Expression>) -> Self {
+    pub fn new(token: Box<Token>, left: Box<Expression>, right: Box<Expression>) -> Self {
         let operator = token.literal.clone();
         Self {
             token,
@@ -261,13 +261,13 @@ impl std::fmt::Display for InfixExpression {
 }
 
 #[derive(Debug)]
-pub(crate) struct Boolean {
-    pub(crate) token: Box<Token>,
-    pub(crate) value: bool,
+pub struct Boolean {
+    pub token: Box<Token>,
+    pub value: bool,
 }
 
 impl Boolean {
-    pub(crate) fn new(token: Box<Token>, value: bool) -> Self {
+    pub fn new(token: Box<Token>, value: bool) -> Self {
         Self { token, value }
     }
 }
@@ -284,33 +284,10 @@ impl Node for Boolean {
     }
 }
 
-pub(crate) type Program = Vec<Statement>;
+pub type Program = Vec<Statement>;
 
-pub(crate) fn string(program: &Program) -> String {
+pub fn string(program: &Program) -> String {
     program
         .iter()
         .fold(String::new(), |string, ast| format!("{}{}", string, ast))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::token::Token;
-    use crate::token_type::TokenType;
-
-    #[test]
-    fn test_string() {
-        let program: Program = vec![Statement::Let(LetStatement::new(
-            Box::new(Token::new(TokenType::Let, "let".to_string())),
-            Identifier::new(Box::new(Token::new(TokenType::Ident, "myVar".to_string()))),
-            Box::new(Expression::Identifier(Identifier::new(Box::new(
-                Token::new(TokenType::Ident, "anotherVar".to_string()),
-            )))),
-        ))];
-
-        assert_eq!(
-            "let myVar = anotherVar;".to_string(),
-            format!("{}", program.get(0).unwrap())
-        );
-    }
 }

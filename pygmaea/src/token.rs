@@ -1,13 +1,13 @@
 use crate::token_type::TokenType;
 
 #[derive(Debug, Eq, PartialEq, Default, Clone)]
-pub(crate) struct Token {
-    pub(crate) token_type: TokenType,
-    pub(crate) literal: String,
+pub struct Token {
+    pub token_type: TokenType,
+    pub literal: String,
 }
 
 impl Token {
-    pub(crate) fn new(token_type: TokenType, literal: String) -> Self {
+    pub fn new(token_type: TokenType, literal: String) -> Self {
         Self {
             token_type,
             literal,

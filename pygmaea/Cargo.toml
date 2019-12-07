@@ -1,5 +1,5 @@
 [package]
-name = "pygmaea-interpreter"
+name = "pygmaea"
 version = "0.1.0"
 authors = ["makanai5610 <takumi.k.5610@gmail.com>"]
 edition = "2018"
@@ -8,5 +8,3 @@ edition = "2018"
 
 [dependencies]
 lazy_static = ""
-whoami = ""
-pygmaea = { package = "pygmaea", path = "./pygmaea/" }

@@ -2,7 +2,7 @@ use crate::token::Token;
 use crate::token_type::TokenType;
 
 #[derive(Debug)]
-pub(crate) enum ParseError {
+pub enum ParseError {
     NoneToken,
     PeekToken(TokenType, Option<Box<Token>>),
     Statement(ParseStatementError),
@@ -10,14 +10,14 @@ pub(crate) enum ParseError {
 }
 
 #[derive(Debug)]
-pub(crate) enum ParseStatementError {
+pub enum ParseStatementError {
     Let,
     Return,
     Expression,
 }
 
 #[derive(Debug)]
-pub(crate) enum ParseExpressionError {
+pub enum ParseExpressionError {
     NoPrefix(Option<Box<Token>>),
     Prefix,
     Infix,

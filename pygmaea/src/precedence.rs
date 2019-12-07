@@ -2,7 +2,7 @@ use crate::token_type::TokenType;
 use std::cmp::Ordering;
 
 #[derive(Eq)]
-pub(crate) enum Precedence {
+pub enum Precedence {
     Lowest,
     Equals,
     LessGreater,
@@ -13,7 +13,7 @@ pub(crate) enum Precedence {
 }
 
 impl Precedence {
-    pub(crate) fn look_up_by(token_type: TokenType) -> Option<Precedence> {
+    pub fn look_up_by(token_type: TokenType) -> Option<Precedence> {
         match token_type {
             TokenType::Equal => Some(Precedence::Equals),
             TokenType::NotEqual => Some(Precedence::Equals),
