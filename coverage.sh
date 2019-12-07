@@ -11,5 +11,5 @@ export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-c
 cargo +nightly build --verbose
 cargo +nightly test --verbose
 
-grcov ./pygmaea/target/debug/deps -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" -o lcov.info
+grcov ./pygmaea/target/debug/deps -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info
 genhtml -o report/ --show-details --highlight --ignore-errors source --legend lcov.info
