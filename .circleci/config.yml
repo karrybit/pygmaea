@@ -44,8 +44,14 @@ jobs:
                       - "/usr/local/cargo/registry"
                       - "target"
             - run:
+                  name: pwd
+                  command: pwd
+            - run:
                   name: change directory to pygmaea
                   command: cd pygmaea
+            - run:
+                  name: pwd
+                  command: pwd
             - run:
                   name: test
                   command: cargo test
