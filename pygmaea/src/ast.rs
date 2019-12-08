@@ -286,7 +286,7 @@ impl Node for Boolean {
 
 pub type Program = Vec<Statement>;
 
-pub fn string(program: &Program) -> String {
+pub fn string(program: &[Statement]) -> String {
     program
         .iter()
         .fold(String::new(), |string, ast| format!("{}{}", string, ast))
