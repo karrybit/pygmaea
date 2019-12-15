@@ -19,42 +19,6 @@ impl Lexer {
         lexer
     }
 
-    fn read_char(&mut self) {
-        self.examining_char = self.input.get(self.read_position).cloned();
-        self.position = self.read_position;
-        self.read_position += 1;
-    }
-
-    fn skip_whitespace(&mut self) {
-        while self
-            .examining_char
-            .as_ref()
-            .map_or(false, char::is_ascii_whitespace)
-        {
-            self.read_char();
-        }
-    }
-
-    fn read_identifier(&mut self) -> String {
-        let position = self.position;
-        while self.examining_char.map_or(false, is_letter) {
-            self.read_char();
-        }
-        self.input[position..self.position].iter().collect()
-    }
-
-    fn read_number(&mut self) -> String {
-        let position = self.position;
-        while self
-            .examining_char
-            .as_ref()
-            .map_or(false, char::is_ascii_digit)
-        {
-            self.read_char();
-        }
-        self.input[position..self.position].iter().collect()
-    }
-
     pub fn next_token(&mut self) -> Token {
         use TokenType::*;
 
@@ -89,7 +53,7 @@ impl Lexer {
             Some(ch) if ch == '}' => Token::new(RBrace, ch.to_string()),
             Some(ch) if ch == ',' => Token::new(Comma, ch.to_string()),
             Some(ch) if ch == ';' => Token::new(Semicolon, ch.to_string()),
-            Some(ref ch) if ch.is_ascii_digit() => Token::new(Int, self.read_number()),
+            Some(ch) if ch.is_ascii_digit() => Token::new(Int, self.read_number()),
             Some(ch) if is_letter(ch) => {
                 let ident = self.read_identifier();
                 Token::new(look_up_ident(&ident), ident)
@@ -102,6 +66,42 @@ impl Lexer {
             self.read_char();
         }
         token
+    }
+
+    fn read_char(&mut self) {
+        self.examining_char = self.input.get(self.read_position).cloned();
+        self.position = self.read_position;
+        self.read_position += 1;
+    }
+
+    fn skip_whitespace(&mut self) {
+        while self
+            .examining_char
+            .as_ref()
+            .map_or(false, char::is_ascii_whitespace)
+        {
+            self.read_char();
+        }
+    }
+
+    fn read_number(&mut self) -> String {
+        let position = self.position;
+        while self
+            .examining_char
+            .as_ref()
+            .map_or(false, char::is_ascii_digit)
+        {
+            self.read_char();
+        }
+        self.input[position..self.position].iter().collect()
+    }
+
+    fn read_identifier(&mut self) -> String {
+        let position = self.position;
+        while self.examining_char.map_or(false, is_letter) {
+            self.read_char();
+        }
+        self.input[position..self.position].iter().collect()
     }
 }
 
