@@ -34,13 +34,17 @@ impl std::fmt::Display for Statement {
 #[derive(Debug)]
 pub struct LetStatement {
     pub token: Box<Token>,
-    pub name: Identifier,
-    pub value: Box<Expression>,
+    pub identifier: Identifier,
+    pub expression: Box<Expression>,
 }
 
 impl LetStatement {
-    pub fn new(token: Box<Token>, name: Identifier, value: Box<Expression>) -> Self {
-        Self { token, name, value }
+    pub fn new(token: Box<Token>, identifier: Identifier, expression: Box<Expression>) -> Self {
+        Self {
+            token,
+            identifier,
+            expression,
+        }
     }
 }
 
@@ -56,8 +60,8 @@ impl std::fmt::Display for LetStatement {
             f,
             "{} {} = {};",
             self.token_literal(),
-            self.name,
-            self.value
+            self.identifier,
+            self.expression
         )
     }
 }

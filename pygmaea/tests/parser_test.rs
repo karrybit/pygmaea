@@ -60,17 +60,17 @@ mod tests {
                     statement.token_literal()
                 );
                 assert_eq!(
-                    expect_name, statement.name.value,
+                    expect_name, statement.identifier.value,
                     "[{}] let_statement.name.value not '{}'. got={}",
-                    i, expect_name, statement.name.value
+                    i, expect_name, statement.identifier.value
                 );
                 assert_eq!(
                     expect_name,
-                    statement.name.token_literal(),
+                    statement.identifier.token_literal(),
                     "[{}] let_statement.name.token_literal not '{}'. got={}",
                     i,
                     expect_name,
-                    statement.name.token_literal()
+                    statement.identifier.token_literal()
                 );
             }
             other_statement => panic!(
@@ -497,7 +497,7 @@ mod tests {
 
                 match program.get(0).unwrap() {
                     Statement::Let(statement) => {
-                        assert_boolean_expression(&statement.value, expect, i)
+                        assert_boolean_expression(&statement.expression, expect, i)
                     }
                     Statement::Expression(statement) => {
                         assert_boolean_expression(&statement.expression, expect, i)

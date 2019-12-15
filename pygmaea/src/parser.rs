@@ -26,7 +26,7 @@ impl Parser {
     }
 
     fn next_token(&mut self) {
-        self.current_token = std::mem::replace(&mut self.peek_token, None);
+        self.current_token = self.peek_token.take();
         self.peek_token = Some(Box::new(self.lexer.next_token()));
     }
 
@@ -61,72 +61,47 @@ impl Parser {
             return Err(ParseError::Statement(ParseStatementError::Let));
         }
 
-        let let_token = match std::mem::replace(&mut self.current_token, None) {
-            Some(token) => token,
-            None => {
-                self.errors.push(ParseError::NoneToken);
-                return Err(ParseError::Statement(ParseStatementError::Let));
-            }
-        };
-
-        self.next_token();
-        let identifier = Identifier::new(match std::mem::replace(&mut self.current_token, None) {
-            Some(token) => token,
-            None => {
-                self.errors.push(ParseError::NoneToken);
-                return Err(ParseError::Statement(ParseStatementError::Let));
-            }
-        });
-
+        let let_token = self.current_token.take().unwrap();
         self.next_token();
 
-        if self.current_token_is(TokenType::Assign) {
-            self.next_token();
-            let expression = match self.parse_expression(Precedence::Lowest) {
-                Ok(expression) => expression,
-                Err(e) => {
-                    self.errors.push(e);
-                    return Err(ParseError::Statement(ParseStatementError::Let));
-                }
-            };
-            Ok(Statement::Let(LetStatement::new(
-                let_token, identifier, expression,
-            )))
-        } else {
+        let identifier_token = self.current_token.take().ok_or_else(|| {
+            self.errors.push(ParseError::NoneToken);
+            ParseError::Statement(ParseStatementError::Let)
+        })?;
+        let identifier = Identifier::new(identifier_token);
+        self.next_token();
+
+        if !self.current_token_is(TokenType::Assign) {
             self.peek_error(TokenType::Assign);
-            Err(ParseError::Statement(ParseStatementError::Let))
+            return Err(ParseError::Statement(ParseStatementError::Let));
         }
+        self.next_token();
+        let expression = self.parse_expression(Precedence::Lowest).map_err(|e| {
+            self.errors.push(e);
+            ParseError::Statement(ParseStatementError::Let)
+        })?;
+        Ok(Statement::Let(LetStatement::new(
+            let_token, identifier, expression,
+        )))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
-        let token = match std::mem::replace(&mut self.current_token, None) {
-            Some(token) => token,
-            None => {
-                self.errors.push(ParseError::NoneToken);
-                return Err(ParseError::Statement(ParseStatementError::Return));
-            }
-        };
-
+        let token = self.current_token.take().unwrap();
         self.next_token();
-        let expression = match self.parse_expression(Precedence::Lowest) {
-            Ok(expression) => expression,
-            Err(e) => {
-                self.errors.push(e);
-                return Err(ParseError::Statement(ParseStatementError::Return));
-            }
-        };
+
+        let expression = self.parse_expression(Precedence::Lowest).map_err(|e| {
+            self.errors.push(e);
+            ParseError::Statement(ParseStatementError::Return)
+        })?;
 
         Ok(Statement::Return(ReturnStatement::new(token, expression)))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ParseError> {
-        let expression = match self.parse_expression(Precedence::Lowest) {
-            Ok(expression) => expression,
-            Err(e) => {
-                self.errors.push(e);
-                return Err(ParseError::Statement(ParseStatementError::Expression));
-            }
-        };
+        let expression = self.parse_expression(Precedence::Lowest).map_err(|e| {
+            self.errors.push(e);
+            ParseError::Statement(ParseStatementError::Expression)
+        })?;
         let statement = ExpressionStatement::new(expression);
         if self.peek_token_is(TokenType::Semicolon) {
             self.next_token();
@@ -135,45 +110,32 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Box<Expression>, ParseError> {
-        let token = match std::mem::replace(&mut self.current_token, None) {
-            Some(token) => token,
-            None => return Err(ParseError::NoneToken),
-        };
+        let token = self.current_token.take().ok_or(ParseError::NoneToken)?;
         self.next_token();
 
         let mut left_expression = self.parse_prefix_expression(token)?;
 
         while !self.current_token_is(TokenType::Semicolon)
-            && self.current_token.as_ref().map_or(false, |token| {
-                Precedence::look_up_by(token.token_type).map_or(false, |looked_up_precedence| {
+            && self
+                .current_token
+                .as_ref()
+                .map(|token| token.token_type)
+                .and_then(Precedence::look_up_by)
+                .map_or(false, |looked_up_precedence| {
                     precedence < looked_up_precedence
                 })
-            })
         {
-            let precedence = match Precedence::look_up_by(
-                self.current_token
-                    .as_ref()
-                    .map_or(TokenType::Illegal, |token| token.token_type),
-            ) {
-                Some(precedence) => precedence,
-                None => return Ok(left_expression),
-            };
-
-            let token = match std::mem::replace(&mut self.current_token, None) {
-                Some(token) => token,
-                None => return Err(ParseError::NoneToken),
-            };
+            let token = self.current_token.clone().unwrap();
+            let precedence = Precedence::look_up_by(token.token_type).unwrap();
 
             self.next_token();
 
-            left_expression = match self.parse_infix_expression(left_expression, token, precedence)
-            {
-                Ok(left_expression) => left_expression,
-                Err(err) => {
-                    self.errors.push(err);
-                    return Err(ParseError::Expression(ParseExpressionError::Infix));
-                }
-            };
+            left_expression = self
+                .parse_infix_expression(left_expression, token, precedence)
+                .map_err(|e| {
+                    self.errors.push(e);
+                    ParseError::Expression(ParseExpressionError::Infix)
+                })?;
         }
 
         Ok(left_expression)
@@ -193,21 +155,17 @@ impl Parser {
                 Ok(Box::new(expression))
             }
             TokenType::Bang | TokenType::Minus => {
-                let right_expresion = match self.parse_expression(Precedence::Prefix) {
-                    Ok(right_expresion) => right_expresion,
-                    Err(err) => {
-                        self.errors.push(err);
-                        return Err(ParseError::Expression(ParseExpressionError::Prefix));
-                    }
-                };
+                let expression = self.parse_expression(Precedence::Prefix).map_err(|e| {
+                    self.errors.push(e);
+                    ParseError::Expression(ParseExpressionError::Prefix)
+                })?;
                 Ok(Box::new(Expression::Prefix(PrefixExpression::new(
-                    token,
-                    right_expresion,
+                    token, expression,
                 ))))
             }
             TokenType::True | TokenType::False => Ok(Box::new(self.parse_boolean(token))),
             _ => Err(ParseError::Expression(ParseExpressionError::NoPrefix(
-                std::mem::replace(&mut self.current_token, None),
+                self.current_token.take(),
             ))),
         }
     }
@@ -218,13 +176,10 @@ impl Parser {
         token: Box<Token>,
         precedence: Precedence,
     ) -> Result<Box<Expression>, ParseError> {
-        let right_expresion = match self.parse_expression(precedence) {
-            Ok(right_expresion) => right_expresion,
-            Err(err) => {
-                self.errors.push(err);
-                return Err(ParseError::Expression(ParseExpressionError::Infix));
-            }
-        };
+        let right_expresion = self.parse_expression(precedence).map_err(|e| {
+            self.errors.push(e);
+            ParseError::Expression(ParseExpressionError::Infix)
+        })?;
 
         Ok(Box::new(Expression::Infix(InfixExpression::new(
             token,
@@ -254,9 +209,7 @@ impl Parser {
     }
 
     fn peek_error(&mut self, token_type: TokenType) {
-        self.errors.push(ParseError::PeekToken(
-            token_type,
-            std::mem::replace(&mut self.peek_token, None),
-        ))
+        self.errors
+            .push(ParseError::PeekToken(token_type, self.peek_token.take()))
     }
 }
