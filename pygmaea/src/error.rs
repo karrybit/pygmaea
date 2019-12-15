@@ -18,7 +18,7 @@ pub enum ParseStatementError {
 
 #[derive(Debug)]
 pub enum ParseExpressionError {
-    NoPrefix(Option<Box<Token>>),
+    NoPrefix(Box<Token>),
     Prefix,
     Infix,
     Boolean,
@@ -58,16 +58,12 @@ impl std::error::Error for ParseExpressionError {}
 impl std::fmt::Display for ParseExpressionError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ParseExpressionError::NoPrefix(Some(token)) => {
+            ParseExpressionError::NoPrefix(token) => {
                 write!(f, "no prefix parse for {}.", token.token_type)
             }
             ParseExpressionError::Prefix => write!(f, "failed to parse prefix."),
             ParseExpressionError::Infix => write!(f, "failed to parse infix expression."),
             ParseExpressionError::Boolean => write!(f, "failed to parse boolean."),
-            _ => write!(
-                f,
-                "occur something error that does not to be catched any patterns."
-            ),
         }
     }
 }

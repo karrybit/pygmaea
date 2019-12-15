@@ -113,7 +113,7 @@ impl Parser {
         let token = self.current_token.take().ok_or(ParseError::NoneToken)?;
         self.next_token();
 
-        let mut left_expression = self.parse_prefix_expression(token)?;
+        let mut expression = self.parse_prefix_expression(token)?;
 
         while !self.current_token_is(TokenType::Semicolon)
             && self
@@ -130,15 +130,15 @@ impl Parser {
 
             self.next_token();
 
-            left_expression = self
-                .parse_infix_expression(left_expression, token, precedence)
+            expression = self
+                .parse_infix_expression(expression, token, precedence)
                 .map_err(|e| {
                     self.errors.push(e);
                     ParseError::Expression(ParseExpressionError::Infix)
                 })?;
         }
 
-        Ok(left_expression)
+        Ok(expression)
     }
 
     fn parse_prefix_expression(
@@ -165,7 +165,7 @@ impl Parser {
             }
             TokenType::True | TokenType::False => Ok(Box::new(self.parse_boolean(token))),
             _ => Err(ParseError::Expression(ParseExpressionError::NoPrefix(
-                self.current_token.take(),
+                token,
             ))),
         }
     }
