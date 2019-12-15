@@ -50,34 +50,33 @@ mod tests {
     }
 
     fn assert_let_statement(statement: &Statement, expect_name: String, i: usize) {
-        match statement {
-            Statement::Let(ref statement) => {
-                assert_eq!(
-                    "let".to_string(),
-                    statement.token_literal(),
-                    "[{}] statement.token_literal not 'let'. got={}",
-                    i,
-                    statement.token_literal()
-                );
-                assert_eq!(
-                    expect_name, statement.identifier.value,
-                    "[{}] let_statement.name.value not '{}'. got={}",
-                    i, expect_name, statement.identifier.value
-                );
-                assert_eq!(
-                    expect_name,
-                    statement.identifier.token_literal(),
-                    "[{}] let_statement.name.token_literal not '{}'. got={}",
-                    i,
-                    expect_name,
-                    statement.identifier.token_literal()
-                );
-            }
+        let let_statement = match statement {
+            Statement::Let(ref statement) => statement,
             other_statement => panic!(
                 "[{}] statement not ReturnStatement. got={}",
                 i, other_statement
             ),
         };
+        assert_eq!(
+            "let".to_string(),
+            let_statement.token_literal(),
+            "[{}] statement.token_literal not 'let'. got={}",
+            i,
+            let_statement.token_literal()
+        );
+        assert_eq!(
+            expect_name, let_statement.identifier.value,
+            "[{}] let_statement.name.value not '{}'. got={}",
+            i, expect_name, let_statement.identifier.value
+        );
+        assert_eq!(
+            expect_name,
+            let_statement.identifier.token_literal(),
+            "[{}] let_statement.name.token_literal not '{}'. got={}",
+            i,
+            expect_name,
+            let_statement.identifier.token_literal()
+        );
     }
 
     fn setup_return_statement_input() -> String {
@@ -107,19 +106,22 @@ mod tests {
                 program.len()
             );
 
-            program.iter().for_each(|statement| match statement {
-                Statement::Return(statement) => assert_eq!(
+            program.iter().for_each(|statement| {
+                let return_statement = match statement {
+                    Statement::Return(statement) => statement,
+                    other_statement => panic!(
+                        "[{}] statement not ReturnStatement. got={}",
+                        i, other_statement
+                    ),
+                };
+                assert_eq!(
                     "return",
-                    statement.token_literal(),
+                    return_statement.token_literal(),
                     "[{}] statement.token_literal not 'return'. got={}",
                     i,
-                    statement.token_literal()
-                ),
-                other_statement => panic!(
-                    "[{}] statement not ReturnStatement. got={}",
-                    i, other_statement
-                ),
-            })
+                    return_statement.token_literal()
+                );
+            });
         });
     }
 
@@ -141,35 +143,36 @@ mod tests {
                 program.len()
             );
 
-            if let Statement::Expression(statement) = program.get(0).unwrap() {
-                let expression: &Expression = statement.expression.as_ref();
-                match expression {
-                    Expression::Identifier(identifier) => {
-                        assert_eq!(
-                            "foobar", identifier.value,
-                            "[{}] identifier value not {}. got={}",
-                            i, "foobar", identifier.value
-                        );
-                        assert_eq!(
-                            "foobar",
-                            identifier.token_literal(),
-                            "[{}] identifier token_literal() not {}. got={}",
-                            i,
-                            "foobar",
-                            identifier.token_literal()
-                        );
-                    }
-                    _ => {
-                        panic!("[{}] expression not Identifier. got={}", i, expression);
-                    }
-                }
-            } else {
-                panic!(
+            let expression_statement = match program.get(0) {
+                Some(Statement::Expression(statement)) => statement,
+                _ => panic!(
                     "[{}] program statement is not ExpressionStatement. got={}",
                     i,
                     program.get(0).unwrap()
-                );
-            }
+                ),
+            };
+
+            let identifier = match *expression_statement.expression {
+                Expression::Identifier(ref identifier) => identifier,
+                _ => panic!(
+                    "[{}] expression not Identifier. got={}",
+                    i, expression_statement
+                ),
+            };
+
+            assert_eq!(
+                "foobar", identifier.value,
+                "[{}] identifier value not {}. got={}",
+                i, "foobar", identifier.value
+            );
+            assert_eq!(
+                "foobar",
+                identifier.token_literal(),
+                "[{}] identifier token_literal() not {}. got={}",
+                i,
+                "foobar",
+                identifier.token_literal()
+            );
         });
     }
 
@@ -190,34 +193,34 @@ mod tests {
                 program.len()
             );
 
-            if let Statement::Expression(statement) = program.get(0).unwrap() {
-                match *statement.expression {
-                    Expression::Integer(ref literal) => {
-                        assert_eq!(
-                            5, literal.value,
-                            "[{}] literal value not 5. got={}",
-                            i, literal.value
-                        );
-                        assert_eq!(
-                            "5".to_string(),
-                            literal.token_literal(),
-                            "[{}] literal token_literal not '5'. got={}",
-                            i,
-                            literal.token_literal()
-                        );
-                    }
-                    _ => panic!(
-                        "[{}] expression not IntegerLiteral. got={}",
-                        i, statement.expression
-                    ),
-                }
-            } else {
-                panic!(
+            let expression_statement = match program.get(0) {
+                Some(Statement::Expression(statement)) => statement,
+                _ => panic!(
                     "[{}] program statements is not ExpressionStatement. got={}",
                     i,
                     program.get(0).unwrap()
-                );
-            }
+                ),
+            };
+
+            let integer_literal = match *expression_statement.expression {
+                Expression::Integer(ref literal) => literal,
+                _ => panic!(
+                    "[{}] expression not IntegerLiteral. got={}",
+                    i, expression_statement.expression
+                ),
+            };
+            assert_eq!(
+                5, integer_literal.value,
+                "[{}] literal value not 5. got={}",
+                i, integer_literal.value
+            );
+            assert_eq!(
+                "5".to_string(),
+                integer_literal.token_literal(),
+                "[{}] literal token_literal not '5'. got={}",
+                i,
+                integer_literal.token_literal()
+            );
         });
     }
 
@@ -262,28 +265,30 @@ mod tests {
                     program.len()
                 );
 
-                if let Statement::Expression(statement) = program.get(0).unwrap() {
-                    match *statement.expression {
-                        Expression::Prefix(ref prefix) => {
-                            assert_eq!(
-                                expect.0, prefix.operator,
-                                "[{}] expression operator is not {}. got={}",
-                                i, expect.0, prefix.operator
-                            );
-                            expect.1.assert_literal_expression(&prefix.right, i);
-                        }
-                        _ => panic!(
-                            "[{}] expression is not PrefixExpression. got={}",
-                            i, statement.expression
-                        ),
-                    }
-                } else {
-                    panic!(
+                let expression_statement = match program.get(0) {
+                    Some(Statement::Expression(statement)) => statement,
+                    _ => panic!(
                         "[{}] program statements is not ExpressionStatement. got={}",
                         i,
                         program.get(0).unwrap()
-                    );
-                }
+                    ),
+                };
+
+                let prefix_expression = match *expression_statement.expression {
+                    Expression::Prefix(ref expression) => expression,
+                    _ => panic!(
+                        "[{}] expression is not PrefixExpression. got={}",
+                        i, expression_statement.expression
+                    ),
+                };
+                assert_eq!(
+                    expect.0, prefix_expression.operator,
+                    "[{}] expression operator is not {}. got={}",
+                    i, expect.0, prefix_expression.operator
+                );
+                expect
+                    .1
+                    .assert_literal_expression(&prefix_expression.right, i);
             });
     }
 
@@ -353,11 +358,19 @@ mod tests {
                     i,
                     program.len()
                 );
-                let statement = match program.get(0).unwrap() {
-                    Statement::Expression(statement) => statement,
+
+                let expression_statement = match program.get(0) {
+                    Some(Statement::Expression(statement)) => statement,
                     _ => panic!("[{}] program statement is not ExpressionStatement.", i),
                 };
-                assert_infix_expression(&statement.expression, expect.0, expect.1, expect.2, i);
+
+                assert_infix_expression(
+                    &expression_statement.expression,
+                    expect.0,
+                    expect.1,
+                    expect.2,
+                    i,
+                );
             });
     }
 
@@ -368,21 +381,21 @@ mod tests {
         right: impl Wrapped,
         i: usize,
     ) {
-        match expression {
-            Expression::Infix(expression) => {
-                left.assert_literal_expression(&expression.left, i);
-                assert_eq!(
-                    expression.operator, operator,
-                    "[{}] expression.operator is not {}. got={}",
-                    i, operator, expression.operator
-                );
-                right.assert_literal_expression(&expression.right, i);
-            }
+        let infix_expression = match expression {
+            Expression::Infix(expression) => expression,
             _ => panic!(
                 "[{}] expression is not InfixExpression. got={}",
                 i, expression
             ),
-        }
+        };
+
+        left.assert_literal_expression(&infix_expression.left, i);
+        assert_eq!(
+            infix_expression.operator, operator,
+            "[{}] expression.operator is not {}. got={}",
+            i, operator, infix_expression.operator
+        );
+        right.assert_literal_expression(&infix_expression.right, i);
     }
 
     fn setup_operator_precedence_parsing_input() -> Vec<String> {
@@ -512,87 +525,84 @@ mod tests {
     }
 
     fn assert_boolean_expression(expression: &Expression, expect: bool, i: usize) {
-        match expression {
-            Expression::Boolean(boolean) => {
-                assert_eq!(
-                    expect, boolean.value,
-                    "[{}] boolean value not {}. got={}",
-                    i, expect, boolean.value
-                );
-                assert_eq!(
-                    expect.to_string(),
-                    boolean.token_literal(),
-                    "[{}] literal token_literal not {}. got={}",
-                    i,
-                    expect.to_string(),
-                    boolean.token_literal()
-                );
-            }
+        let boolean_expression = match expression {
+            Expression::Boolean(expression) => expression,
             _ => panic!("[{}] expression is not Boolean. got={}", i, expression),
-        }
+        };
+        assert_eq!(
+            expect, boolean_expression.value,
+            "[{}] boolean value not {}. got={}",
+            i, expect, boolean_expression.value
+        );
+        assert_eq!(
+            expect.to_string(),
+            boolean_expression.token_literal(),
+            "[{}] literal token_literal not {}. got={}",
+            i,
+            expect.to_string(),
+            boolean_expression.token_literal()
+        );
     }
 
     fn assert_integer_literal(expression: &Expression, value: i64, i: usize) {
-        match expression {
-            Expression::Integer(literal) => {
-                assert_eq!(
-                    value, literal.value,
-                    "[{}] literal value not {}. got={}",
-                    i, value, literal.value
-                );
-                assert_eq!(
-                    value.to_string(),
-                    literal.token_literal(),
-                    "[{}] literal token_literal not {}. got={}",
-                    i,
-                    value.to_string(),
-                    literal.token_literal()
-                );
-            }
+        let integer_literal = match expression {
+            Expression::Integer(literal) => literal,
             _ => panic!("[{}] expression not IntegerLiteral. got={}", i, expression),
-        }
+        };
+
+        assert_eq!(
+            value, integer_literal.value,
+            "[{}] literal value not {}. got={}",
+            i, value, integer_literal.value
+        );
+        assert_eq!(
+            value.to_string(),
+            integer_literal.token_literal(),
+            "[{}] literal token_literal not {}. got={}",
+            i,
+            value.to_string(),
+            integer_literal.token_literal()
+        );
     }
 
     fn assert_identifier(expression: &Expression, value: String, i: usize) {
-        match expression {
-            Expression::Identifier(identifier) => {
-                assert_eq!(
-                    identifier.value, value,
-                    "[{}] identifier.value not {}. got={}",
-                    i, value, identifier.value
-                );
-                assert_eq!(
-                    identifier.token_literal(),
-                    value,
-                    "[{}] identifier.token_literal() not {}. got={}",
-                    i,
-                    value,
-                    identifier.token_literal()
-                );
-            }
+        let identifier = match expression {
+            Expression::Identifier(identifier) => identifier,
             _ => panic!("[{}] expression not Identifier. got={}", i, expression),
-        }
+        };
+        assert_eq!(
+            identifier.value, value,
+            "[{}] identifier.value not {}. got={}",
+            i, value, identifier.value
+        );
+        assert_eq!(
+            identifier.token_literal(),
+            value,
+            "[{}] identifier.token_literal() not {}. got={}",
+            i,
+            value,
+            identifier.token_literal()
+        );
     }
 
     fn assert_boolean_literal(expression: &Expression, value: bool, i: usize) {
-        match expression {
-            Expression::Boolean(expression) => {
-                assert_eq!(
-                    value, expression.value,
-                    "[{}] expression.value not {}. got={}",
-                    i, value, expression.value
-                );
-                assert_eq!(
-                    value.to_string(),
-                    expression.token_literal(),
-                    "[{}] expression.token_literal() not {}. got={}",
-                    i,
-                    value.to_string(),
-                    expression.token_literal()
-                );
-            }
+        let boolean = match expression {
+            Expression::Boolean(boolean) => boolean,
             _ => panic!("[{}] expression not boolean. got={}", i, expression),
-        }
+        };
+        assert_eq!(
+            value, boolean.value,
+            "[{}] expression.value not {}. got={}",
+            i, value, boolean.value
+        );
+        assert_eq!(
+            value.to_string(),
+            boolean.token_literal(),
+            "[{}] expression.token_literal() not {}. got={}",
+            i,
+            value.to_string(),
+            boolean.token_literal()
+        );
     }
 
     fn check_parser_errors(parser: &Parser, i: usize) {
